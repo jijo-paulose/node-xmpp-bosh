@@ -2,7 +2,9 @@
 
 = Benchmarks =
 
-* BOSH server serving 1000 simultaneous BOSH sessions (clients) using 256 simultaneous HTTP connections.
+=== Test-1 ===
+
+BOSH server serving 1000 simultaneous BOSH sessions (clients) using 256 simultaneous HTTP connections.
 
 Command: node stress.js --domain=YOUR_DOMAIN --nsess=1000 --nconn=256 --reqdelay=10
 
@@ -10,7 +12,9 @@ Memory Usage (RSS): 41MB (max)
 
 Test run on: CYGWIN_NT-5.1 hostname 1.7.5(0.225/5/3) 2010-04-12 19:07 i686 Cygwin
 
-* BOSH server serving 5000 simultaneous BOSH sessions (clients) using 4000 simultaneous HTTP connections.
+=== Test-2 ===
+
+BOSH server serving 5000 simultaneous BOSH sessions (clients) using 4000 simultaneous HTTP connections.
 
 Memory Usage (RSS): Between 128MB and 170MB
 
