@@ -1,3 +1,5 @@
+#summary Some benchmarks of node-xmpp-bosh memory usage with different loads.
+
 #Benchmarks
 
 = Benchmarks =
