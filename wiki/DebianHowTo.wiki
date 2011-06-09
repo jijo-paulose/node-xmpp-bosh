@@ -224,7 +224,7 @@ Paste the following content:
 
 {{{
 #!/usr/bin/env sh
-exec /usr/local/lib/bosh/run-server.js >> /var/log/bosh/bosh.log 2>> /var/log/bosh/bosh.err & "$@"
+exec /usr/local/lib/bosh/run-server.js "$@" >> /var/log/bosh/bosh.log 2>> /var/log/bosh/bosh.err &
 }}}
 
 Save it (CTRL+O using nano).
