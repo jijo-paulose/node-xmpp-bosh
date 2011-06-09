@@ -16,6 +16,85 @@ TODO
 
 TODO
 
+/!\ Don't forget the logging folder /!\
+
 = Startup scripts installation =
 
-TODO
+Some startup scripts may be useful to make the node-xmpp-bosh process management faster.
+
+== init.d script ==
+
+node-xmpp-bosh will not be launched on system startup once installed, that's why you'd better use the following init.d script, to be put in the /etc/init.d/bosh file with execution permissions:
+
+{{{
+#! /bin/sh
+#
+# NXB        Start/stop NXB BOSH server
+#
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+NODE_PATH=/usr/local/lib/node
+BOSH=/usr/local/bin/bosh
+NAME=run-server.js
+
+test -e $BOSH || exit 0
+
+start()
+{
+    if ! pgrep -f $NAME
+    then
+        export NODE_PATH
+        $BOSH
+    fi
+}
+
+stop()
+{
+    killall node
+}
+
+case "$1" in
+    start)
+	echo -n "Starting bosh server"
+	start &
+    ;;
+    stop)
+	echo -n "Stopping bosh server"
+	stop &
+    ;;
+    restart)
+	echo -n "Restarting bosh server"
+	$0 stop
+	$0 start
+    ;;
+    *)
+	echo "Usage: $0 {start|stop|restart}" >&2
+	exit 1
+    ;;
+esac
+
+if [ $? -eq 0 ]; then
+    echo .
+else
+    echo " failed."
+fi
+
+exit 0
+}}}
+
+Then, you have to put the related command script in the /usr/local/bin/bosh file:
+
+{{{
+#!/usr/bin/env sh
+exec /usr/local/lib/bosh/run-server.js >> /var/log/bosh/bosh.log 2>> /var/log/bosh/bosh.err & "$@"
+}}}
+
+Once done, you will be able to start, stop or restart node-xmpp-bosh using this command:
+
+{{{
+/etc/init.d/bosh start|stop|restart
+}}}
+
+== cronjob ==
+
+To avoid 
