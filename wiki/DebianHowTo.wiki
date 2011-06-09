@@ -91,8 +91,18 @@ exec /usr/local/lib/bosh/run-server.js >> /var/log/bosh/bosh.log 2>> /var/log/bo
 
 Once done, you will be able to start, stop or restart node-xmpp-bosh using this command:
 
-`/etc/init.d/bosh start|stop|restart`
+`/etc/init.d/bosh {start|stop|restart}`
 
 == cronjob ==
 
-To avoid 
+To avoid any downtime of your BOSH service, you may want to use a cronjob to start node-xmpp-bosh if not started (the check is proceeded every minute).
+
+First, execute this:
+
+`crontab -e`
+
+Then, at the end of the file, paste this:
+
+`*/1 * * * * /etc/init.d/bosh start >>/dev/null`
+
+Remember this solution is not the best (not really clean), but is simple and works fine. Advanced users may want to use daemontools.
