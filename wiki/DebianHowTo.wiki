@@ -39,7 +39,7 @@ Copy the node-xmpp-bosh sample configuration file in a new file:
 
 Then, open it and start configuring it to meet your needs!
 
--> FATAL for logs
+A little warn about the logging feature: if your BOSH server will receive a huge amount of data, please consider setting the _logging_ option to _FATAL_ to avoid getting your disk system full quickly.
 
 == node-xmpp-bosh logs ==
 
