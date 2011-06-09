@@ -1,4 +1,4 @@
-#summary Some benchmarks of node-xmpp-bosh memory usage with different loads.
+#summary Some benchmarks of node-xmpp-bosh memory usage with different kinds of loads.
 
 #Benchmarks
 
