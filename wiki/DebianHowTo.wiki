@@ -10,7 +10,7 @@ node.js installation is pretty slow, because it involves compiling it.
 
 Firstly, we install the dependencies:
 
-`apt-get install libgcc-dev libssl-dev python`
+`apt-get install libssl-dev python`
 
 Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version because of an OpenSSL issue with nodejs):
 
@@ -21,6 +21,8 @@ Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version 
 We launch the compilation (can take some minutes):
 
 `./configure; make; make install`
+
+Note: configure may tell you to install some missing packages if the required compilation tools are not present on the system.
 
 Finally, we move the build we did in its production directory:
 
