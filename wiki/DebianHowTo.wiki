@@ -6,13 +6,35 @@ node-xmpp-bosh installation can be really hard with little sysadmin knowledges. 
 
 = node.js installation =
 
-TODO
+node.js installation is pretty slow, because it involves compiling it.
 
--> 0.4.7 version!
+Firstly, we install the compilation tools:
+
+`apt-get install lib-`
+
+Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version because of an OpenSSL issue with nodejs):
+
+`wget`
+
+We launch the compilation (can take some minutes):
+
+`./configure; make; make install`
+
+Finally, we move the build we did in its production directory:
+
+`mv ./build /usr/local/lib/node`
 
 = Plugins installation =
 
-TODO
+node-xmpp-bosh has some specific plugin requirements. Note that it may evolve with the new node-xmpp-bosh versions, so that you will need to use additional plugins which do not figure in this how-to.
+
+First, we get everything needed:
+
+`git`
+
+Finally, we create symbolic links:
+
+`touch`
 
 = node-xmpp-bosh installation =
 
