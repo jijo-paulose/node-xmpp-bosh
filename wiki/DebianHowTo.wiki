@@ -6,7 +6,7 @@ node-xmpp-bosh installation can be really hard with little sysadmin knowledges. 
 
 = node.js installation =
 
-node.js installation is pretty slow, because it involves compiling it.
+node.js installation is pretty slow, because it involves compiling it. On some Debian systems, the _nodejs_ packet is available in the official repository, so that you can switch this step.
 
 Firstly, we install the dependencies:
 
@@ -15,7 +15,9 @@ Firstly, we install the dependencies:
 Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version because of an OpenSSL issue with nodejs):
 
 `wget http://nodejs.org/dist/node-v0.4.7.tar.gz`
+
 `tar -zxvf node-v0.4.7.tar.gz`
+
 `cd ./node-v0.4.7`
 
 We launch the compilation (can take some minutes):
