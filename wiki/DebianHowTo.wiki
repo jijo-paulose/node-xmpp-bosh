@@ -1,4 +1,4 @@
-#summary A step-by-step help to install node-xmpp-bosh on a Debian system.
+#summary A step-by-step help to install and configure node-xmpp-bosh on a Debian system.
 
 = Introduction =
 
