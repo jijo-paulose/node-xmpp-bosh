@@ -1,0 +1,21 @@
+#summary A step-by-step help to install node-xmpp-bosh on a Debian system.
+
+= Introduction =
+
+node-xmpp-bosh installation can be really hard with little sysadmin knowledges. In this help, we will process to a step-by-step node-xmpp-bosh installation on Debian and Debian-based systems, like Ubuntu.
+
+= node.js installation =
+
+TODO
+
+= Plugins installation =
+
+TODO
+
+= node-xmpp-bosh installation =
+
+TODO
+
+= Startup scripts installation =
+
+TODO
