@@ -20,15 +20,11 @@ Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version 
 
 `cd ./node-v0.4.7`
 
-We launch the compilation (can take some minutes):
+Finally, we launch the compilation (can take some minutes):
 
-`./configure; make; make install`
+`./configure --prefix=/usr/local/lib/node; make; make install`
 
 Note: configure may tell you to install some missing packages if the required compilation tools are not present on the system.
-
-Finally, we move the build we did in its production directory:
-
-`mv ./build /usr/local/lib/node`
 
 = Plugins installation =
 
