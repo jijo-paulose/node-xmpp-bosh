@@ -40,7 +40,19 @@ Some startup scripts may be useful to make the node-xmpp-bosh process management
 
 == init.d script ==
 
-node-xmpp-bosh will not be launched on system startup once installed, that's why you'd better use the following init.d script, to be put in the /etc/init.d/bosh file with execution permissions:
+node-xmpp-bosh will not be launched on system startup once installed, that's why you'd better use the following init.d script. Firstly, create the file:
+
+`touch /etc/init.d/bosh`
+
+Then, apply permissive rights:
+
+`chmod 777 /etc/init.d/bosh`
+
+Open the file:
+
+`nano /etc/init.d/bosh`
+
+Paste the following content:
 
 {{{
 #! /bin/sh
@@ -98,12 +110,28 @@ fi
 exit 0
 }}}
 
-Then, you have to put the related command script in the /usr/local/bin/bosh file:
+Save it (CTRL+O using nano).
+
+Then, you have to create the related command script:
+
+`touch /usr/local/bin/bosh`
+
+Then, apply permissive rights:
+
+`chmod 777 /usr/local/bin/bosh`
+
+Open the file:
+
+`nano /usr/local/bin/bosh`
+
+Paste the following content:
 
 {{{
 #!/usr/bin/env sh
 exec /usr/local/lib/bosh/run-server.js >> /var/log/bosh/bosh.log 2>> /var/log/bosh/bosh.err & "$@"
 }}}
+
+Save it (CTRL+O using nano).
 
 Once done, you will be able to start, stop or restart node-xmpp-bosh using this command:
 
