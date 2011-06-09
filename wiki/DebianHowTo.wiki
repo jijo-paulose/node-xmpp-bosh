@@ -192,4 +192,6 @@ Then, at the end of the file, paste this:
 
 `*/1 * * * * /etc/init.d/bosh start >>/dev/null`
 
+Save it (CTRL+O using nano), the cronjobs will be updated.
+
 Remember this solution is not the best (not really clean), but is simple and works fine. Advanced users may want to use daemontools.
