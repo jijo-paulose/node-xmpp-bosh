@@ -33,7 +33,11 @@ After an update, you will need to restart node-xmpp-bosh using the init.d comman
 
 == node-xmpp-bosh configuration ==
 
-TODO
+Copy the node-xmpp-bosh sample configuration file in a new file:
+
+`cp /usr/local/lib/bosh/bosh.conf.example.js /etc/bosh.js.conf`
+
+Then, open it and start configuring it to meet your needs!
 
 -> FATAL for logs
 
