@@ -8,15 +8,32 @@ node-xmpp-bosh installation can be really hard with little sysadmin knowledges. 
 
 TODO
 
+-> 0.4.7 version!
+
 = Plugins installation =
 
 TODO
 
 = node-xmpp-bosh installation =
 
+Once node.js and node-xmpp-bosh dependencies are installed, we can install node-xmpp-bosh itself and change its configuration.
+
 == node-xmpp-bosh itself ==
 
+Get the last node-xmpp-bosh version on the downloads page, or get its trunk using Subversion (recommended):
+
+`svn checkout http://node-xmpp-bosh.googlecode.com/svn/trunk/ /usr/local/lib/bosh`
+
+The use of SVN offers you the possibility to update node-xmpp-bosh quickly to the last development version using the following commands:
+
+`cd /usr/local/lib/bosh`
+`svn up`
+
+After an update, you will need to restart node-xmpp-bosh using the init.d command (see after).
+
 == node-xmpp-bosh configuration ==
+
+TODO
 
 -> FATAL for logs
 
