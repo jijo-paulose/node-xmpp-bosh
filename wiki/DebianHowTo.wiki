@@ -14,9 +14,25 @@ TODO
 
 = node-xmpp-bosh installation =
 
-TODO
+== node-xmpp-bosh itself ==
 
-/!\ Don't forget the logging folder /!\
+== node-xmpp-bosh configuration ==
+
+-> FATAL for logs
+
+== node-xmpp-bosh logs ==
+
+To be able to report the crash logs to the node-xmpp-bosh issue tracker, you have to create the logging folder and the logging files:
+
+`mkdir /var/log/bosh`
+
+Then, the two logging files:
+
+`touch /var/log/bosh.log /var/log/bosh.err`
+
+Finally, apply permissive rights to the whole:
+
+`chmod 777 -R /var/log/bosh`
 
 = Startup scripts installation =
 
