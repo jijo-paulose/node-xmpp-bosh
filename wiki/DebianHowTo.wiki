@@ -8,13 +8,15 @@ node-xmpp-bosh installation can be really hard with little sysadmin knowledges. 
 
 node.js installation is pretty slow, because it involves compiling it.
 
-Firstly, we install the compilation tools:
+Firstly, we install the dependencies:
 
-`apt-get install lib-`
+`apt-get install libgcc-dev libssl-dev python`
 
 Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version because of an OpenSSL issue with nodejs):
 
-`wget`
+`wget http://nodejs.org/dist/node-v0.4.7.tar.gz`
+`tar -zxvf node-v0.4.7.tar.gz`
+`cd ./node-v0.4.7`
 
 We launch the compilation (can take some minutes):
 
