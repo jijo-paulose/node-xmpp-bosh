@@ -10,7 +10,7 @@ node.js installation is pretty slow, because it involves compiling it. On some D
 
 Firstly, we install the dependencies:
 
-`apt-get install libssl-dev python`
+`apt-get install libssl-dev python subversion git`
 
 Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version because of an OpenSSL issue with nodejs):
 
@@ -22,7 +22,7 @@ Then, we get nodejs v0.4.7 (node-xmpp-bosh does not work with the newer version 
 
 Finally, we launch the compilation (can take some minutes):
 
-`./configure --prefix=/usr/local/lib/node; make; make install`
+`./configure --prefix=/usr/bin/node; make; make install`
 
 Note: configure may tell you to install some missing packages if the required compilation tools are not present on the system.
 
@@ -30,13 +30,46 @@ Note: configure may tell you to install some missing packages if the required co
 
 node-xmpp-bosh has some specific plugin requirements. Note that it may evolve with the new node-xmpp-bosh versions, so that you will need to use additional plugins which do not figure in this how-to.
 
-First, we get everything needed:
+First, we create the required folders:
 
-`git`
+`mkdir /usr/local/lib/node`
+
+`mkdir /usr/local/lib/node/.libs`
+
+Then, we get the plugins:
+
+`cd ./.libs`
+
+`git clone git://github.com/MaZderMind/node-expat.git`
+
+`git clone git://github.com/astro/ltx.git`
+
+`git clone git://github.com/broofa/node-uuid.git`
+
+`git clone git://github.com/akaspin/tav.git`
+
+`git clone git://github.com/documentcloud/underscore.git`
+
+`git clone git://github.com/dhruvbird/eventpipe.git`
 
 Finally, we create symbolic links:
 
+`cd ../`
+
 `touch`
+
+You can update your plugins from their development repositories using this script (put it in an executable file):
+
+{{{
+#!/usr/bin/env zsh
+
+for i in *(/)
+do
+        cd "$i"
+        git pull -a
+        cd ../
+done
+}}}
 
 = node-xmpp-bosh installation =
 
