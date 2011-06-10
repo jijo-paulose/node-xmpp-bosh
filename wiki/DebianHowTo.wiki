@@ -249,4 +249,4 @@ Then, at the end of the file, paste this:
 
 Save it (CTRL+O using nano), the cronjobs will be updated.
 
-Remember this solution is not the best (not really clean), but is simple and works fine. Advanced users may want to use daemontools.
+Remember this solution is not the best (not really clean), but is simple and works fine. Advanced users may want to use [http://cr.yp.to/daemontools.html daemontools].
