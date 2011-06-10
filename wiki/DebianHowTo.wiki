@@ -104,6 +104,7 @@ Get the last node-xmpp-bosh version on the downloads page, or get its trunk usin
 The use of SVN offers you the possibility to update node-xmpp-bosh quickly to the last development version using the following commands:
 
 `cd /usr/local/lib/bosh`
+
 `svn up`
 
 After an update, you will need to restart node-xmpp-bosh using the init.d command (see after).
