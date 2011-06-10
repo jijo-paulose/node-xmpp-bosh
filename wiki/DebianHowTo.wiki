@@ -6,7 +6,7 @@ node-xmpp-bosh installation can be really hard without knowledge of the UNIX she
 
 = node.js installation =
 
-node.js installation is pretty slow, because it involves compiling it. On some Debian systems, the _nodejs_ packet is available in the official repository, so that you can switch this step.
+node.js installation is pretty slow, because it involves compiling it. On some Debian systems, the _nodejs_ package is available in the official repository, so that you can switch this step.
 
 Firstly, we install the dependencies:
 
