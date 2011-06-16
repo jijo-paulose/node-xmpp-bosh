@@ -1,0 +1,48 @@
+#How to setup node-xmpp-bosh with [http://cr.yp.to/daemontools.html daemontools]
+
+= Using Daemontools to monitor node-xmpp-bosh =
+
+Install node-xmpp-bosh using either the instructions in [http://code.google.com/p/node-xmpp-bosh/source/browse/trunk/INSTALL.TXT INSTALL.TXT] or as mentioned in the [DebianHowTo]
+
+Once you have completed everything till the section *node-xmpp-bosh configuration*, you can follow the steps mentioned below
+
+=== Create a symlink to bosh-server ===
+
+If you installed node-xmpp-bosh in /root, the _bosh-server_ executable will be in _/root/node_modules/node-xmpp-bosh/bosh-server_
+
+`ln -l /root/node_modules/node-xmpp-bosh/bosh-server /root`
+
+=== Install daemontools on *NIX systems ===
+
+If you are running ubuntu, see below
+
+  * [http://cr.yp.to/daemontools.html Download]
+  * [http://cr.yp.to/daemontools/install.html Install]
+
+=== Install daemontools on ubuntu ===
+
+Run `apt-get install daemontools`
+
+=== Add daemontools to your startup scripts ===
+
+[http://cr.yp.to/daemontools/start.html How to Start]
+
+Be sure to replace /command/svscanboot with the output of `which svscanboot` on your machine
+
+=== Create /etc/service ===
+
+`mkdir /etc/service`
+
+=== Create the BOSH startup script ===
+
+`mkdir /etc/service/bosh`
+
+Create a script _/etc/service/bosh/run_ with the following contents
+
+{{{
+#!/bin/bash
+export PATH=/opt/node-v0.4.7/bin:$PATH
+setuidgid nobody /root/bosh-server >> bosh.log 2>>bosh.err
+}}}
+
+`chmod +x /etc/service/bosh/run`
