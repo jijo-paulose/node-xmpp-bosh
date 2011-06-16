@@ -1,4 +1,4 @@
-#How to setup node-xmpp-bosh with daemontools
+#summary How to setup node-xmpp-bosh with daemontools
 
 = Using Daemontools to monitor node-xmpp-bosh =
 
