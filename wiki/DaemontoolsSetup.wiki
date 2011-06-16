@@ -4,7 +4,7 @@
 
 Install node-xmpp-bosh using either the instructions in [http://code.google.com/p/node-xmpp-bosh/source/browse/trunk/INSTALL.TXT INSTALL.TXT] or as mentioned in the [DebianHowTo]
 
-Once you have completed everything till the section *node-xmpp-bosh configuration*, you can follow the steps mentioned below
+Once you have completed everything till the section *node-xmpp-bosh configuration* (if you are following the [DebianHowTo], you can follow the steps mentioned below
 
 === Create a symlink to bosh-server ===
 
