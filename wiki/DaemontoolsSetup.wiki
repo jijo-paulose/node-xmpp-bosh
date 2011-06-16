@@ -12,9 +12,9 @@ If you installed node-xmpp-bosh in /root, the _bosh-server_ executable will be i
 
 `ln -l /root/node_modules/node-xmpp-bosh/bosh-server /root`
 
-=== Install daemontools on *NIX systems ===
+=== Install daemontools on `*`NIX systems ===
 
-If you are running ubuntu, see below
+(If you are running ubuntu, see below)
 
   * [http://cr.yp.to/daemontools.html Download]
   * [http://cr.yp.to/daemontools/install.html Install]
