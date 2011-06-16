@@ -10,7 +10,7 @@ Once you have completed everything till the section *node-xmpp-bosh configuratio
 
 If you installed node-xmpp-bosh in /root, the _bosh-server_ executable will be in _/root/node_modules/node-xmpp-bosh/bosh-server_
 
-`ln -l /root/node_modules/node-xmpp-bosh/bosh-server /root`
+`ln -s /root/node_modules/node-xmpp-bosh/bosh-server /root`
 
 === Install daemontools on `*`NIX systems ===
 
