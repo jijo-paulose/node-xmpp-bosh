@@ -37,6 +37,12 @@ Be sure to replace /command/svscanboot with the output of `which svscanboot` on 
 
 `mkdir /etc/service/bosh`
 
+`touch /etc/service/bosh/bosh.log`
+
+`touch /etc/service/bosh/bosh.err`
+
+`chmod a+rw /etc/service/bosh/bosh.err /etc/service/bosh/bosh.log`
+
 Create a script _/etc/service/bosh/run_ with the following contents
 
 {{{
@@ -46,3 +52,9 @@ setuidgid nobody /root/bosh-server >> bosh.log 2>>bosh.err
 }}}
 
 `chmod +x /etc/service/bosh/run`
+
+=== Manually start svscanboot (if you don't want to reboot) ===
+
+`svscanboot &`
+
+That's it!!
