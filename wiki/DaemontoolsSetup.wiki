@@ -8,9 +8,9 @@ Once you have completed everything till the section *node-xmpp-bosh configuratio
 
 === Create a symlink to bosh-server ===
 
-If you installed node-xmpp-bosh in /root, the _bosh-server_ executable will be in _/root/node_modules/node-xmpp-bosh/bosh-server_
+If you installed node-xmpp-bosh in /root, the _bosh-server_ executable will be in _/root/node_modules/.bin/bosh-server_
 
-`ln -s /root/node_modules/node-xmpp-bosh/bosh-server /root`
+`ln -s /root/node_modules/.bin/bosh-server /root`
 
 === Install daemontools on `*`NIX systems ===
 
