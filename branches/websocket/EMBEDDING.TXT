@@ -24,7 +24,7 @@ Raised by the BOSH server
 -------------------------
 
 01. 'stream-add'            => function(stream_state)
-02. 'stream-restart'        => function(stream_state)
+02. 'stream-restart'        => function(stream_state, stream_attrs)
 03. 'stream-terminate'      => function(stream_state)
 04. 'response-acknowledged' => function(wrapped_response, state)
 05. 'error'                 => function(exception)
