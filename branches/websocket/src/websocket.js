@@ -216,15 +216,3 @@ exports.createServer = function(bosh_server, options) {
 
 	return wsep;
 };
-
-
-exports.test = function() {
-	var hs = http.createServer(function() {
-		console.log("HTTP REQUEST");
-	});
-
-	hs.listen(8080);
-	exports.createServer({ http_server: hs });
-};
-
-// exports.test();
