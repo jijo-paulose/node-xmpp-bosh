@@ -54,8 +54,7 @@ var STREAM_OPENED   = 2;
 //
 
 
-exports.createServer = function(bosh_server, options) {
-	console.log("options:", options);
+exports.createServer = function(bosh_server) {
 
 	var sn_state = { };
 
@@ -130,11 +129,8 @@ exports.createServer = function(bosh_server, options) {
 		sn_state[stream_name] = sstate;
 
 		conn.on('message', function(message) {
-			// console.log("message:", message);
-			var _terminate = false;
-
 			message = '<dummy>' + message + '</dummy>';
-			console.log("message:", message);
+			log_it('DEBUG', sprintfd('WEBSOCKET::%s::Processing Message:%s', stream_name, message));
 
 			// XML parse the message
 			var nodes = dutil.xml_parse(message);
@@ -143,7 +139,7 @@ exports.createServer = function(bosh_server, options) {
 				return;
 			}
 
-			console.log("xml nodes:", nodes);
+			// console.log("xml nodes:", nodes);
 			nodes = nodes.children;
 
 			// The stream start node is special since we trigger a stream-add
@@ -162,7 +158,7 @@ exports.createServer = function(bosh_server, options) {
 				if (sstate.stream_state === STREAM_UNOPENED) {
 					// Start a new stream
 					sstate.stream_state = STREAM_OPENED;
-					console.log("stream start attrs:", ss_node.attrs);
+					// console.log("stream start attrs:", ss_node.attrs);
 
 					sstate.to = ss_node.attrs.to;
 					wsep.emit('stream-add', sstate, ss_node.attrs);
@@ -173,21 +169,15 @@ exports.createServer = function(bosh_server, options) {
 				}
 			}
 
-			console.log("nodes:", nodes);
+			// console.log("nodes:", nodes);
 			assert(nodes instanceof Array);
 
 			// Process the nodes normally.
 			wsep.emit('nodes', nodes, sstate);
-
-			// Terminate if necessary
-			if (_terminate) {
-				sstate.conn.close();
-			}
-
 		});
 
 		conn.on('close', function() {
-			console.log('[*] close');
+			log_it('DEBUG', sprintfd('WEBSOCKET::%s::Stream close requested', stream_name));
 
 			if (!sn_state.hasOwnProperty(stream_name)) {
 				// Already terminated
@@ -206,7 +196,6 @@ exports.createServer = function(bosh_server, options) {
 	});
 	
 	websocket_server.on('disconnect', function(conn) {
-		console.log("Disconnected");
 	});
 
 	// TODO: Handle the 'error' event on the bosh_server and re-emit it. 
