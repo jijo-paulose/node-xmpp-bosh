@@ -124,7 +124,7 @@ exports.createServer = function(bosh_server, options) {
 			has_next_tick: false, 
 			// Compatibility with xmpp-proxy-connector
 			state: {
-				sid: "UNDEFINED"
+				sid: "WEBSOCKET"
 			}
 		};
 		sn_state[stream_name] = sstate;
