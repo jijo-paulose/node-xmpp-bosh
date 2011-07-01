@@ -68,7 +68,7 @@ exports.createServer = function(bosh_server, options) {
 		}
 	});
 
-	var wsep = new WebSocketEventPipe();
+	var wsep = new WebSocketEventPipe(bosh_server);
 
 	var websocket_server = ws.createServer({
 		server: bosh_server.server
@@ -201,7 +201,7 @@ exports.createServer = function(bosh_server, options) {
 
 			// Note: Always delete before emitting events
 
-			// Raise the terminate event on wsep
+			// Raise the stream-terminate event on wsep
 			wsep.emit('stream-terminate', sstate);
 		});
 
