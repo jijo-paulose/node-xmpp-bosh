@@ -26,14 +26,12 @@
 
 var http   = require('http');
 var ws     = require('websocket-server');
-var url    = require('url');
 var ltx    = require('ltx');
 var util   = require('util');
 var uuid   = require('node-uuid');
 var dutil  = require('./dutil.js');
 var us     = require('underscore');
 var assert = require('assert').ok;
-var qs     = require('querystring');
 var EventPipe = require('eventpipe').EventPipe;
 
 
@@ -44,6 +42,17 @@ var toNumber = us.toNumber;
 
 var STREAM_UNOPENED = 1;
 var STREAM_OPENED   = 2;
+
+// 
+// Important links:
+// 
+// Draft Websocket protocol specification
+// http://tools.ietf.org/html/draft-moffitt-xmpp-over-websocket-00
+// 
+// Strophe.js modified for Websocket support
+// https://github.com/superfeedr/strophejs/tree/protocol-ed
+//
+
 
 exports.createServer = function(bosh_server, options) {
 	console.log("options:", options);
@@ -137,6 +146,8 @@ exports.createServer = function(bosh_server, options) {
 			console.log("xml nodes:", nodes);
 			nodes = nodes.children;
 
+			// The stream start node is special since we trigger a stream-add
+			// event when we get it.
 			var ss_node = nodes.filter(function(node) {
 				return typeof node.is === 'function' && node.is('stream');
 			});

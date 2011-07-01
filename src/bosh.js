@@ -32,7 +32,6 @@ var uuid   = require('node-uuid');
 var dutil  = require('./dutil.js');
 var us     = require('underscore');
 var assert = require('assert').ok;
-var qs     = require('querystring');
 var EventPipe = require('eventpipe').EventPipe;
 
 
