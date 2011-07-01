@@ -37,3 +37,20 @@ Listened to by the BOSH server
 08. 'terminate'             => function(stream_state, had_error)
 09. 'stream-added'          => function(stream_state)
 10. 'response'              => function(response, stream_state)
+
+
+Raised by the WEBSOCKET server
+------------------------------
+
+01. stream-add
+02. nodes
+03. stream-terminate
+04. stream-restart
+05. error
+
+Listened to by the WEBSOCKET server
+-----------------------------------
+
+06. stream-added
+07. response
+08. terminate
