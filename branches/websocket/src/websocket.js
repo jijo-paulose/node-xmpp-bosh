@@ -71,7 +71,8 @@ exports.createServer = function(bosh_server, options) {
 	var wsep = new WebSocketEventPipe(bosh_server);
 
 	var websocket_server = ws.createServer({
-		server: bosh_server.server
+		server: bosh_server.server, 
+		subprotocol: 'xmpp'
 	});
 
 	wsep.server = websocket_server;
@@ -90,17 +91,9 @@ exports.createServer = function(bosh_server, options) {
 
 	wsep.on('response', function(response, sstate) {
 		// Send the data back to the client
-		sstate.responses.push(response);
-		if (!sstate.has_next_tick) {
-			process.nextTick(function() {
-				sstate.has_next_tick = false;
-				var _r = dutil.map(sstate.responses, 'toString').join('');
 
-				// TODO: Handle send() failed
-				sstate.conn.send(_r);
-			});
-			sstate.has_next_tick = true;
-		}
+		// TODO: Handle send() failed
+		sstate.conn.send(response.toString());
 	});
 
 	wsep.on('terminate', function(sstate, had_error) {
@@ -120,8 +113,6 @@ exports.createServer = function(bosh_server, options) {
 			name: stream_name, 
 			stream_state: STREAM_UNOPENED, 
 			conn: conn, 
-			responses: [ ], 
-			has_next_tick: false, 
 			// Compatibility with xmpp-proxy-connector
 			state: {
 				sid: "WEBSOCKET"
@@ -130,21 +121,10 @@ exports.createServer = function(bosh_server, options) {
 		sn_state[stream_name] = sstate;
 
 		conn.on('message', function(message) {
-			console.log("message:", message);
-			var so_pos = message.search('<stream:stream');
+			// console.log("message:", message);
 			var _terminate = false;
 
-			if (so_pos !== -1) {
-				if (message.search('</stream:stream') === -1) {
-					message = message + '</stream:stream>';
-				}
-				else {
-					_terminate = true;
-				}
-			}
-
 			message = '<dummy>' + message + '</dummy>';
-
 			console.log("message:", message);
 
 			// XML parse the message
@@ -157,21 +137,28 @@ exports.createServer = function(bosh_server, options) {
 			console.log("xml nodes:", nodes);
 			nodes = nodes.children;
 
-			if (nodes.length > 0 && typeof nodes[0].is === 'function' && nodes[0].is('stream')) {
-				var so_node = nodes[0];
-				nodes = so_node.children;
+			var ss_node = nodes.filter(function(node) {
+				return typeof node.is === 'function' && node.is('stream');
+			});
 
+			ss_node = us.first(ss_node);
+
+			nodes = nodes.filter(function(node) {
+				return typeof node.is === 'function' ? !node.is('stream') : true;
+			});
+
+			if (ss_node) {
 				if (sstate.stream_state === STREAM_UNOPENED) {
 					// Start a new stream
 					sstate.stream_state = STREAM_OPENED;
-					console.log("stream start attrs:", so_node.attrs);
+					console.log("stream start attrs:", ss_node.attrs);
 
-					sstate.to    = so_node.attrs.to;
-					wsep.emit('stream-add', sstate, so_node.attrs);
+					sstate.to = ss_node.attrs.to;
+					wsep.emit('stream-add', sstate, ss_node.attrs);
 				}
 				else if (sstate.stream_state === STREAM_OPENED) {
 					// Restart the current stream
-					wsep.emit('stream-restart', sstate, so_node.attrs);
+					wsep.emit('stream-restart', sstate, ss_node.attrs);
 				}
 			}
 
