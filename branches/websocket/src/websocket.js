@@ -45,7 +45,7 @@ var toNumber = us.toNumber;
 var STREAM_UNOPENED = 1;
 var STREAM_OPENED   = 2;
 
-exports.createServer = function(options) {
+exports.createServer = function(bosh_server, options) {
 	console.log("options:", options);
 
 	var sn_state = { };
@@ -71,23 +71,61 @@ exports.createServer = function(options) {
 	var wsep = new WebSocketEventPipe();
 
 	var websocket_server = ws.createServer({
-		server: options.http_server
+		server: bosh_server.server
 	});
 
 	wsep.server = websocket_server;
 
-	wsep.on('response', function() {
+	wsep.on('stream-added', function(sstate) {
+		var to = sstate.to || '';
+		var ss_xml = new ltx.Element('stream:stream', {
+			'xmlns': 'jabber:client', 
+			'xmlns:stream': 'http://etherx.jabber.org/streams', 
+			'version': '1.0', 
+			'xml:lang': 'en', 
+			'from': to
+		}).toString();
+		sstate.conn.send(ss_xml);
 	});
 
-	wsep.on('terminate', function() {
+	wsep.on('response', function(response, sstate) {
+		// Send the data back to the client
+		sstate.responses.push(response);
+		if (!sstate.has_next_tick) {
+			process.nextTick(function() {
+				sstate.has_next_tick = false;
+				var _r = dutil.map(sstate.responses, 'toString').join('');
+
+				// TODO: Handle send() failed
+				sstate.conn.send(_r);
+			});
+			sstate.has_next_tick = true;
+		}
+	});
+
+	wsep.on('terminate', function(sstate, had_error) {
+		if (!sn_state.hasOwnProperty(sstate.name)) {
+			return;
+		}
+		delete sn_state[sstate.name];
+
+		// Note: Always delete before closing
+		// TODO: Handle close() failed
+		sstate.conn.close();
 	});
 
 	websocket_server.on('connection', function(conn) {
 		var stream_name = uuid();
 		var sstate = {
 			name: stream_name, 
-			state: STREAM_UNOPENED, 
-			conn: conn
+			stream_state: STREAM_UNOPENED, 
+			conn: conn, 
+			responses: [ ], 
+			has_next_tick: false, 
+			// Compatibility with xmpp-proxy-connector
+			state: {
+				sid: "UNDEFINED"
+			}
 		};
 		sn_state[stream_name] = sstate;
 
@@ -105,52 +143,78 @@ exports.createServer = function(options) {
 				}
 			}
 
-			message = '<dummy>' + message + '</dummy'>;
-			
-			// TODO: XML parse the message
+			message = '<dummy>' + message + '</dummy>';
 
+			console.log("message:", message);
+
+			// XML parse the message
+			var nodes = dutil.xml_parse(message);
+			if (!nodes) {
+				sstate.conn.close();
+				return;
+			}
+
+			console.log("xml nodes:", nodes);
 			nodes = nodes.children;
 
 			if (nodes.length > 0 && typeof nodes[0].is === 'function' && nodes[0].is('stream')) {
 				var so_node = nodes[0];
-				nodes = nodes.children;
+				nodes = so_node.children;
 
-				if (sstate.state === STREAM_UNOPENED) {
+				if (sstate.stream_state === STREAM_UNOPENED) {
 					// Start a new stream
-					sstate.state = STREAM_OPENED;
+					sstate.stream_state = STREAM_OPENED;
+					console.log("stream start attrs:", so_node.attrs);
+
+					sstate.to    = so_node.attrs.to;
 					wsep.emit('stream-add', sstate, so_node.attrs);
 				}
-				else if (sstate.state === STREAM_OPENED) {
+				else if (sstate.stream_state === STREAM_OPENED) {
 					// Restart the current stream
 					wsep.emit('stream-restart', sstate, so_node.attrs);
 				}
 			}
 
+			console.log("nodes:", nodes);
 			assert(nodes instanceof Array);
 
 			// Process the nodes normally.
-			wsep.emit('nodes', sstate, nodes);
+			wsep.emit('nodes', nodes, sstate);
 
-			// TODO: Terminate if necessary
+			// Terminate if necessary
+			if (_terminate) {
+				sstate.conn.close();
+			}
 
 		});
 
-		conn.on("close", function() {
+		conn.on('close', function() {
 			console.log('[*] close');
+
+			if (!sn_state.hasOwnProperty(stream_name)) {
+				// Already terminated
+				return;
+			}
+
+			// uncomment: stat_stream_terminate();
+			delete sn_state[stream_name];
+
+			// Note: Always delete before emitting events
+
+			// Raise the terminate event on wsep
+			wsep.emit('stream-terminate', sstate);
 		});
 
 	});
 	
-	websocket_server.on("disconnect", function(conn) {
+	websocket_server.on('disconnect', function(conn) {
 		console.log("Disconnected");
-		// Raise the terminate event on wsep
-		wsep.emit('terminate', sstate);
-		// uncomment: stat_stream_terminate();
-		delete sn_state[stream_name];
 	});
 
 	// TODO: Handle the 'error' event on the bosh_server and re-emit it. 
 	// Throw an exception if no one handles the exception we threw
+
+	return wsep;
 };
 
 
@@ -163,4 +227,4 @@ exports.test = function() {
 	exports.createServer({ http_server: hs });
 };
 
-exports.test();
+// exports.test();
