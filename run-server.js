@@ -159,11 +159,12 @@ function main() {
 	console.log("| " + msg + " |");
 	console.log(hr);
 
-	var server = nxb.start(server_options);
+	var bosh_server = nxb.start_bosh(server_options);
+	var ws_server   = nxb.start_websocket(bosh_server);
 
 }
 
 // Go!!
 main();
 
-// server.stop();
+// bosh_server.stop();
