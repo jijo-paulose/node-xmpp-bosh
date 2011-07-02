@@ -38,10 +38,10 @@ var EventPipe = require('eventpipe').EventPipe;
 var sprintf  = dutil.sprintf;
 var sprintfd = dutil.sprintfd;
 var log_it   = dutil.log_it;
-var toNumber = us.toNumber;
 
-var STREAM_UNOPENED = 1;
-var STREAM_OPENED   = 2;
+const STREAM_UNOPENED = 1;
+const STREAM_OPENED   = 2;
+
 
 // 
 // Important links:
@@ -56,6 +56,7 @@ var STREAM_OPENED   = 2;
 
 exports.createServer = function(bosh_server) {
 
+	// State information for XMPP streams
 	var sn_state = { };
 
 	function WebSocketEventPipe(bosh_server) {
@@ -135,6 +136,8 @@ exports.createServer = function(bosh_server) {
 			// XML parse the message
 			var nodes = dutil.xml_parse(message);
 			if (!nodes) {
+				log_it('WARN', sprintfd('WEBSOCKET::%s::Closing connection due to invalid packet', 
+										stream_name));
 				sstate.conn.close();
 				return;
 			}
@@ -157,6 +160,7 @@ exports.createServer = function(bosh_server) {
 			if (ss_node) {
 				if (sstate.stream_state === STREAM_UNOPENED) {
 					// Start a new stream
+					wsep.stat_stream_add();
 					sstate.stream_state = STREAM_OPENED;
 					// console.log("stream start attrs:", ss_node.attrs);
 
@@ -184,7 +188,7 @@ exports.createServer = function(bosh_server) {
 				return;
 			}
 
-			// uncomment: stat_stream_terminate();
+			wsep.stat_stream_terminate();
 			delete sn_state[stream_name];
 
 			// Note: Always delete before emitting events
@@ -198,8 +202,18 @@ exports.createServer = function(bosh_server) {
 	websocket_server.on('disconnect', function(conn) {
 	});
 
-	// TODO: Handle the 'error' event on the bosh_server and re-emit it. 
+	function emit_error(ex) {
+		// We enforce similar semantics as the rest of the node.js for the 'error'
+		// event and throw an exception if it is unhandled
+		if (!wsep.emit('error', ex)) {
+			throw new Error(ex.toString());
+		}
+	}
+
+	// Handle the 'error' event on the bosh_server and re-emit it. 
 	// Throw an exception if no one handles the exception we threw
+	bosh_server.on('error', emit_error);
+	websocket_server.on('error', emit_error);
 
 	return wsep;
 };
