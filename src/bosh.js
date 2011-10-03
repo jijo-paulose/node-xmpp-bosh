@@ -227,8 +227,7 @@ exports.createServer = function(options) {
 
 			// Check for stream terminate
 			if (streams.is_stream_terminate_request(node)) {
-				log_it("DEBUG", sprintfd('BOSH::%s::Stream Terminate', state.sid));
-
+				log_it("DEBUG", sprintfd('BOSH::%s::Stream Terminate', session.SID()));
 				// We may be required to terminate one stream, or all
 				// the open streams on this BOSH session.
 				session.handle_client_stream_terminate_request(stream, nodes, 
