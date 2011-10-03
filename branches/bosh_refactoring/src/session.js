@@ -738,14 +738,14 @@ Session.prototype = {
     // that we have received till now -- if it is not the current request.
     _get_highest_rid_to_ack: function(rid, msg) {
         if (this._ack) {
-            this._unacked_responses[this._rid] = {
+            this._unacked_responses[rid] = {
                 response: msg,
                 ts: new Date(),
                 rid: rid
             };
             this._max_rid_sent = Math.max(this._max_rid_sent, rid);
             if (rid < this._rid) {
-                return this._rid();
+                return this._rid;
             }
         }
     },
