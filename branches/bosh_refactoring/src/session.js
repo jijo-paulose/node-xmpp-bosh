@@ -545,7 +545,7 @@ Session.prototype = {
         var self = this;
         streams_to_terminate.forEach(function(stream) {
             if (nodes.length > 0) {
-                self._emit_nodes_event(nodes, stream);
+                self.emit_nodes_event(nodes, stream);
             }
 
             // Send stream termination response
@@ -856,13 +856,13 @@ Session.prototype = {
             if (!node.attrs.ack) {
                 // Assume that all requests up to rid-1 have been responded to
                 // http://xmpp.org/extensions/xep-0124.html#rids-broken
-                node.attrs.ack = state.rid - 1;
+                node.attrs.ack = this._rid - 1;
             }
             if (node.attrs.ack) {
                 // If the request from the client includes an ACK, we delete all
                 // packets with an 'rid' less than or equal to this value since
                 // the client has seen all those packets.
-                var self = thhis;
+                var self = this;
                 _uar_keys.forEach(function(rid) {
                     if (rid <= node.attrs.ack) {
                         // Raise the 'response-acknowledged' event.
