@@ -23,17 +23,15 @@
  *
  */
 
-var ltx     = require('ltx');
-var dutil   = require('./dutil.js');
-var us      = require('underscore');
-var assert  = require('assert').ok;
-var sess    = require('./session.js');
-var strm    = require('./stream.js');
-var helper  = require('./helper.js');
-var opt     = require('./options.js');
-var bee     = require('./bosh-event-emitter.js');
-
-
+var ltx         = require('ltx');
+var dutil       = require('./dutil.js');
+var us          = require('underscore');
+var sess        = require('./session.js');
+var strm        = require('./stream.js');
+var helper      = require('./helper.js');
+var opt         = require('./options.js');
+var bee         = require('./bosh-event-emitter.js');
+var http        = require('./http-server.js');
 var sprintf     = dutil.sprintf;
 var sprintfd    = dutil.sprintfd;
 var log_it      = dutil.log_it;
@@ -83,6 +81,10 @@ exports.createServer = function (options) {
     var sessions;
     var streams;
     var bep;
+    var bosh_options;
+    var server;
+
+    started = new Date(); // When was this server started?
 
 	function get_statistics() { //TODO: May be moved to the helper functions.
 		var stats = [ ];
@@ -153,22 +155,6 @@ exports.createServer = function (options) {
 			// Reset the BOSH session timeout
 			session.reset_inactivity_timeout();
 
-            /*var temp_stream = stream;
-            var temp_flag = false;
-            var temp_stream_name = streams.get_name(node);
-            if (temp_stream_name) {
-                // The stream name is included in the BOSH request.
-                temp_stream = streams.get_stream(node);
-                if (!temp_stream) {
-                    temp_flag = true;
-                }
-            }
-
-            if (!temp_flag && !temp_stream) {
-                temp_stream = session.get_only_stream();
-            }*/
-
-            //nodes = session.add_request_to_queue_new(node, temp_stream);
             nodes = session.add_request_to_queue(node);
 
             if (!!session.handle_acknowledgements(node, res)) {
@@ -289,7 +275,31 @@ exports.createServer = function (options) {
 		}
 	}
 
-	// When the Connector is able to add the stream, we too do the same and 
+    function xml_parse_and_get_body_tag(data) {
+        // Wrap data in <dummy> tags to prevent the billion laughs
+        // (XML entity expansion) attack
+        // http://www.stylusstudio.com/xmldev/200211/post50610.html
+        var node = dutil.xml_parse('<dummy>' + data + '</dummy>');
+        if (!node || node.children.length !== 1 || typeof node.children[0].is
+                !== 'function' || !node.children[0].is('body')) {
+            return null;
+        }
+        return node.children[0];
+    }
+
+	//Called when the 'end' event for the request is fired by the HTTP request handler
+	function bosh_request_handler(res, data) {
+		var node = xml_parse_and_get_body_tag(data);
+		if (!node) {
+			res.writeHead(200, bosh_options.HTTP_POST_RESPONSE_HEADERS);
+			res.end(helper.$terminate({ condition: 'bad-request' }).toString());
+			return;
+		}
+		log_it("DEBUG", sprintfd("BOSH::Processing request: %s", node));
+		process_bosh_request(res, node);
+	}
+
+	// When the Connector is able to add the stream, we too do the same and
 	// respond to the client accordingly.
 	function _on_stream_added(stream) {
 		log_it("DEBUG", sprintfd("BOSH::%s::stream-added: %s", stream.state.sid,
@@ -333,17 +343,13 @@ exports.createServer = function (options) {
 		}
 	}
 
-	// TODO: Read off the Headers request from the request and set that in the
-	// response.
-
-	// Initialize
-	started = new Date(); // When was this server started?
-	var bosh_options = new opt.BOSH_Options(options);
+    bosh_options = new opt.BOSH_Options(options);
+    server = new http.HTTPServer(options.port, options.host, get_statistics,
+        bosh_request_handler, http_error_handler, bosh_options);
 	// The BOSH event emitter. People outside will subscribe to
 	// events from this guy. We return an instance of BoshEventPipe
 	// to the outside world when anyone calls createServer()
-	bep = new bee.BoshEventPipe(options.host, options.port, bosh_options,
-				http_error_handler, process_bosh_request, get_statistics);
+	bep = new bee.BoshEventPipe(server.http_server);
 	bep.on('stream-added', _on_stream_added);
 	bep.on('response', _on_repsponse);
 	bep.on('terminate', _on_terminate);
