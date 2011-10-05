@@ -220,36 +220,7 @@ Session.prototype = {
         // the pending queue. That way, we won't need to sort() the queued
         // requests. Think about it...
     },
-
-    add_request_to_queue_new: function (node, stream) {
-        node.attrs.rid = toNumber(node.attrs.rid);
-        this.queued_requests[node.attrs.rid] = {'node' : node, 'stream' : stream};
-
-        var nodes = [ ];
-        // Process all queued requests
-        var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
-        _queued_request_keys.sort(dutil.num_cmp);
-
-        var self = this;
-        _queued_request_keys.forEach(function (rid) {
-            if ((rid === self.rid + 1) && (!stream || stream === self.queued_requests[rid].stream)) {
-                // This is the next logical packet to be processed.
-                nodes = nodes.concat(self.queued_requests[rid].node.children);
-                delete self.queued_requests[rid];
-
-                // Increment the 'rid'
-                self.rid += 1;
-                log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s",
-                    self.sid, self.rid));
-            }
-        });
-
-        return nodes;
-        // Alternatively, we can also call ourselves recursively to process
-        // the pending queue. That way, we won't need to sort() the queued
-        // requests. Think about it...
-    },
-
+    
     // Adds the response object 'res' to the list of held response
     // objects for this BOSH session. Also sets the associated 'rid' of
     // the response object 'res' to 'rid'
