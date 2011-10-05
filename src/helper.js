@@ -23,15 +23,15 @@
  *
  */
 
-var url		= require('url');
-var ltx		= require('ltx');
-var dutil	= require('./dutil.js');
-var us		= require('underscore');
+var url     = require('url');
+var ltx     = require('ltx');
+var dutil   = require('./dutil.js');
+var us      = require('underscore');
 
 
-var toNumber 	= us.toNumber;
-var log_it   	= dutil.log_it;
-var BOSH_XMLNS 	= 'http://jabber.org/protocol/httpbind';
+var toNumber    = us.toNumber;
+var log_it      = dutil.log_it;
+var BOSH_XMLNS  = 'http://jabber.org/protocol/httpbind';
 
 
 // Begin packet builders
@@ -71,7 +71,7 @@ function JSONPResponseProxy(req, res) {
 	this.wrote_ = false;
 
 	var _url = url.parse(req.url, true);
-	this.jsonp_cb_ = _url.query.callback ? _url.query.callback : '';
+	this.jsonp_cb_ = _url.query.callback || '';
 	// console.log("DATA:", _url.query.data);
 	// console.log("JSONP CB:", this.jsonp_cb_);
 
@@ -82,17 +82,16 @@ function JSONPResponseProxy(req, res) {
 }
 
 JSONPResponseProxy.prototype = {
-	on: function() {
+	on: function () {
 		return this.res_.on.apply(this.res_, arguments);
-	}, 
-	writeHead: function(status_code, headers) {
+	},
+	writeHead: function (status_code, headers) {
 		var _headers = { };
 		dutil.copy(_headers, headers);
 		_headers['Content-Type'] = 'application/json; charset=utf-8';
-
 		return this.res_.writeHead(status_code, _headers);
-	}, 
-	write: function(data) {
+	},
+	write: function (data) {
 		if (!this.wrote_) {
 			this.res_.write(this.jsonp_cb_ + '({"reply":"');
 			this.wrote_ = true;
@@ -101,8 +100,8 @@ JSONPResponseProxy.prototype = {
 		data = data || '';
 		data = data.replace(/\n/g, '\\n').replace(/"/g, '\\"');
 		return this.res_.write(data);
-	}, 
-	end: function(data) {
+	},
+	end: function (data) {
 		this.write(data);
 		if (this.jsonp_cb_) {
 			this.res_.write('"});');
@@ -125,16 +124,13 @@ function route_parse(route) {
 	var m = route.match(/^(\S+):(\S+):([0-9]+)$/) || [ ];
 	log_it("DEBUG", "BOSH::route_parse:", m);
 	if (m && m.length === 4) {
-		return {
-			protocol: m[1], host: m[2], port: toNumber(m[3])
-		};
-	}
-	else {
+		return {protocol: m[1], host: m[2], port: toNumber(m[3])};
+	} else {
 		return null;
 	}
 }
 
-function save_terminate_condition_for_wait_time (obj, attr, condition, wait) {
+function save_terminate_condition_for_wait_time(obj, attr, condition, wait) {
 	obj[attr] = {
 		condition: condition,
 		timer: setTimeout(function () {
@@ -143,7 +139,7 @@ function save_terminate_condition_for_wait_time (obj, attr, condition, wait) {
 			}
 		}, (wait + 5) * 1000)
 	};
-}	
+}
 
 // End misc. helpers
 
