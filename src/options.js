@@ -29,7 +29,7 @@ function BOSH_Options(opts) {
 
     var _opts = opts;
 
-    this._HTTP_GET_RESPONSE_HEADERS = {
+    this.HTTP_GET_RESPONSE_HEADERS = {
 		'Content-Type': 'application/xhtml+xml; charset=UTF-8',
 		'Cache-Control': 'no-cache, no-store',
 		'Access-Control-Allow-Origin': '*',
@@ -38,7 +38,7 @@ function BOSH_Options(opts) {
 		'Access-Control-Max-Age': '14400'
 	};
 
-    this._HTTP_POST_RESPONSE_HEADERS = {
+    this.HTTP_POST_RESPONSE_HEADERS = {
 		'Content-Type': 'text/xml; charset=UTF-8',
 		'Access-Control-Allow-Origin': '*',
 		'Access-Control-Allow-Headers': 'Content-Type, x-requested-with, Set-Cookie',
@@ -46,7 +46,7 @@ function BOSH_Options(opts) {
 		'Access-Control-Max-Age': '14400'
 	};
 
-    this._HTTP_OPTIONS_RESPONSE_HEADERS = {
+    this.HTTP_OPTIONS_RESPONSE_HEADERS = {
 		'Access-Control-Allow-Origin': '*',
 		'Access-Control-Allow-Headers': 'Content-Type, x-requested-with, Set-Cookie',
 		'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
@@ -54,62 +54,34 @@ function BOSH_Options(opts) {
 	};
 
     if (_opts.http_headers) {
-		helper.add_to_headers(this._HTTP_GET_RESPONSE_HEADERS, _opts.http_headers);
-		helper.add_to_headers(this._HTTP_POST_RESPONSE_HEADERS, _opts.http_headers);
-		helper.add_to_headers(this._HTTP_OPTIONS_RESPONSE_HEADERS, _opts.http_headers);
+		helper.add_to_headers(this.HTTP_GET_RESPONSE_HEADERS, _opts.http_headers);
+		helper.add_to_headers(this.HTTP_POST_RESPONSE_HEADERS, _opts.http_headers);
+		helper.add_to_headers(this.HTTP_OPTIONS_RESPONSE_HEADERS, _opts.http_headers);
 	}
 
-    this.__defineGetter__("path", function () {
-        return _opts.path;
-    });
+    this.path = _opts.path;
 
-	// The maximum number of bytes that the BOSH server will
+ 	// The maximum number of bytes that the BOSH server will
 	// "hold" from the client.
-	this.__defineGetter__("MAX_DATA_HELD",  function () {
-		return _opts.max_data_held || 100000;
-	});
+	this.MAX_DATA_HELD = _opts.max_data_held || 100000;
 
 	// Don't entertain more than 2 (default) simultaneous connections
 	// on any BOSH session.
-	this.__defineGetter__("MAX_BOSH_CONNECTIONS", function () {
-		return _opts.max_bosh_connections || 2;
-	});
+	this.MAX_BOSH_CONNECTIONS = _opts.max_bosh_connections || 2;
 
 	// The maximum number of packets on either side of the current 'rid'
 	// that we are willing to accept.
-	this.__defineGetter__("WINDOW_SIZE", function () {
-		return _opts.window_size || 2;
-	});
+	this.WINDOW_SIZE = _opts.window_size || 2;
 
 	// How much time (in second) should we hold a response object
 	// before sending and empty response on it?
-	this.__defineGetter__("DEFAULT_INACTIVITY", function () {
-		return _opts.default_inactivity || 70;
-	});
+	this.DEFAULT_INACTIVITY = _opts.default_inactivity || 70;
 
-	this.__defineGetter__("MAX_INACTIVITY", function () {
-		return _opts.max_inactivity || 160;
-	});
+	this.MAX_INACTIVITY = _opts.max_inactivity || 160;
 
-	this.__defineGetter__("HTTP_SOCKET_KEEPALIVE", function () {
-		return _opts.http_socket_keepalive || 60;
-	});
-
-	this.__defineGetter__("MAX_STREAMS_PER_SESSION", function () {
-		return _opts.max_streams_per_session || 8;
-	});
-
-    this.__defineGetter__("HTTP_GET_RESPONSE_HEADERS", function () {
-		return this._HTTP_GET_RESPONSE_HEADERS;
-	});
-
-	this.__defineGetter__("HTTP_POST_RESPONSE_HEADERS", function () {
-		return this._HTTP_POST_RESPONSE_HEADERS;
-	});
-
-	this.__defineGetter__("HTTP_OPTIONS_RESPONSE_HEADERS", function () {
-		return this._HTTP_OPTIONS_RESPONSE_HEADERS;
-	});
+	this.HTTP_SOCKET_KEEPALIVE = _opts.http_socket_keepalive || 60;
+	
+	this.MAX_STREAMS_PER_SESSION = _opts.max_streams_per_session || 8;
 }
 
 exports.BOSH_Options = BOSH_Options;
