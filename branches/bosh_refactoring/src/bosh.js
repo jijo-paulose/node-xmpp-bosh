@@ -23,20 +23,20 @@
  *
  */
 
-var ltx    		= require('ltx');
-var dutil  		= require('./dutil.js');
-var us     		= require('underscore');
-var assert 		= require('assert').ok;
-var sess		= require('./session.js');
-var strm		= require('./stream.js');
-var helper  	= require('./helper.js');
-var opt  		= require('./options.js');
-var bee  		= require('./bosh-event-emitter.js');
+var ltx     = require('ltx');
+var dutil   = require('./dutil.js');
+var us      = require('underscore');
+var assert  = require('assert').ok;
+var sess    = require('./session.js');
+var strm    = require('./stream.js');
+var helper  = require('./helper.js');
+var opt     = require('./options.js');
+var bee     = require('./bosh-event-emitter.js');
 
 
-var sprintf  = dutil.sprintf;
-var sprintfd = dutil.sprintfd;
-var log_it   = dutil.log_it;
+var sprintf     = dutil.sprintf;
+var sprintfd    = dutil.sprintfd;
+var log_it      = dutil.log_it;
 
 //
 // Important links:
@@ -67,8 +67,7 @@ var log_it   = dutil.log_it;
 //
 
 
-exports.createServer = function(options) {
-	
+exports.createServer = function (options) {
 	// 
 	// +-------+
 	// | NOTE: |
@@ -78,14 +77,19 @@ exports.createServer = function(options) {
 	// comments) as and when you add/remove members from them. Please try to 
 	// keep these object definitions up-to-date since it is the main 
 	// (and only) place of reference for object structure.
-	//	
+	//
+
+    var started;
+    var sessions;
+    var streams;
+    var bep;
 
 	function get_statistics() { //TODO: May be moved to the helper functions.
 		var stats = [ ];
 		stats.push('<?xml version="1.0" encoding="utf-8"?>');
 		stats.push('<!DOCTYPE html>');
 		var content = new ltx.Element('html', {
-			'xmlns':    'http://www.w3.org/1999/xhtml', 
+			'xmlns':    'http://www.w3.org/1999/xhtml',
 			'xml:lang': 'en'
 		})
 			.c('head')
@@ -99,80 +103,92 @@ exports.createServer = function(options) {
 			.up()
 			.c('h3').t('Bidirectional-streams Over Synchronous HTTP').up()
 			.c('p').t(sprintf('Uptime: %s', dutil.time_diff(started, new Date()))).up()
-			.c('p').t(sprintf('%s/%s active %s', sessions.get_active_no(), 
-							sessions.get_total_no(), 
+			.c('p').t(sprintf('%s/%s active %s', sessions.get_active_no(),
+							sessions.get_total_no(),
 							dutil.pluralize(sessions.get_total_no(), 'session'))).up()
-			.c('p').t(sprintf('%s/%s active %s', streams.get_active_no(), 
-							streams.get_total_no(), 
+			.c('p').t(sprintf('%s/%s active %s', streams.get_active_no(),
+							streams.get_total_no(),
 							dutil.pluralize(streams.get_total_no(), 'stream'))).up()
 			.tree();
 		stats.push(content.toString());
 		return stats.join('\n');
 	}
 
-	function process_bosh_request(res, node) {		
+	function process_bosh_request(res, node) {
 		// This will eventually contain all the nodes to be processed.
 		var nodes = [ ];
 
 		var session = null;
-		var stream = null; 
-		
+		var stream = null;
+
 		// Check if this is a session start packet.
 		if (sessions.is_session_creation_packet(node)) {
-			log_it("DEBUG", "BOSH::Session creation");			
+			log_it("DEBUG", "BOSH::Session creation");
 			session = sessions.add_session(node, res);
 			stream = streams.add_stream(session, node);
 			// Respond to the client.
-			session.send_session_creation_response(stream);
+			session.send_creation_response(stream);
 			nodes = node.children;
 			// NULL out res so that it is not added again
-			res = null;			
-		}
-		else {
+			res = null;
+		} else {
 			session = sessions.get_session(node);
 			if (!session) { //No (valid) session ID in BOSH request. Not phare enuph.
-				sessions.send_session_terminate_invalid_session_response(res, node);
+				sessions.send_invalid_session_terminate_response(res, node);
 				return;
-			}
-			
-			try  {
+            }
+            try {
 				// This is enclosed in a try/catch block since invalid requests
 				// at this point MAY not have these attributes
-				log_it("DEBUG", sprintfd(
-					"BOSH::%s::RID: %s, state.RID: %s", session.SID(), node.attrs.rid, 
-						session.rid()));
-			}
-			catch (ex) { }
-						
+				log_it("DEBUG", sprintfd("BOSH::%s::RID: %s, state.RID: %s",
+                    session.sid, node.attrs.rid, session.rid));
+			} catch (ex) { }
+
 			// Check the validity of the packet and the BOSH session
 			if (!session.is_valid_packet(node)) {
-				session.send_session_terminate_invalid_packet_response(res, node);				
+				session.send_invalid_packet_terminate_response(res, node);
 				return;
 			}
 
 			// Reset the BOSH session timeout
-			session.reset_session_inactivity_timeout();
-            
-			nodes = session.add_request_to_queue(node);
-				
-			if (!!session.handle_acknowledgements(node, res))
-				return;				
+			session.reset_inactivity_timeout();
 
-			// We handle this condition right at the end so that RID updates
+            /*var temp_stream = stream;
+            var temp_flag = false;
+            var temp_stream_name = streams.get_name(node);
+            if (temp_stream_name) {
+                // The stream name is included in the BOSH request.
+                temp_stream = streams.get_stream(node);
+                if (!temp_stream) {
+                    temp_flag = true;
+                }
+            }
+
+            if (!temp_flag && !temp_stream) {
+                temp_stream = session.get_only_stream();
+            }*/
+
+            //nodes = session.add_request_to_queue_new(node, temp_stream);
+            nodes = session.add_request_to_queue(node);
+
+            if (!!session.handle_acknowledgements(node, res)) {
+                return;
+            }
+
+            // We handle this condition right at the end so that RID updates
 			// can be processed correctly. If only the stream name is invalid, 
 			// we treat this packet as a valid packet (only as far as updates
 			// to 'rid' are concerned)
 			var stream_name = streams.get_name(node);
 			if (stream_name) {
 				// The stream name is included in the BOSH request.
-				stream = streams.get_stream(node);			
+				stream = streams.get_stream(node);
 				if (!stream) {
 					// If the stream name is present, but the stream is not valid, we
 					// blow up.
 					// FIXME: Subtle bug alert: We have implicitly ACKed all 
 					// 'rids' till now since we didn't send an 'ack'
-					streams.send_session_terminate_invalid_stream_response(res, 
-						stream_name);
+					streams.send_invalid_stream_terminate_response(res, stream_name);
 					return;
 				}
 			}
@@ -183,54 +199,53 @@ exports.createServer = function(options) {
 			// Process pending (queued) responses (if any)
 			session.send_pending_responses();
 
-			if (!session.should_process_packet(node))
-				return;
+			if (!session.should_process_packet(node)) {
+                return;
+            }
 
-			// Are we the only stream for this BOSH session?
-			if (!stream) 
-				stream = session.get_only_stream(); 
+            // Are we the only stream for this BOSH session?
+			if (!stream) {
+                stream = session.get_only_stream();
+            }
 
-			// Check if this is a stream restart packet.
+            // Check if this is a stream restart packet.
 			if (streams.is_stream_restart_packet(node)) {
-				log_it("DEBUG", sprintfd("BOSH::%s::Stream Restart", session.SID()));
+				log_it("DEBUG", sprintfd("BOSH::%s::Stream Restart", session.sid));
 				// Check if stream is valid
 				if (!stream) {
 					// Make this a session terminate request.
 					node.attrs.type = 'terminate';
-					delete node.attrs.stream;					
+					delete node.attrs.stream;
 					//TODO: What should be the value of nodes? 
+				} else {
+                    stream.handle_restart(node);
 				}
-				else {
-					stream.handle_restart(node);
-				}				
 				// According to http://xmpp.org/extensions/xep-0206.html
 				// the XML nodes in a restart request should be ignored.
 				// Hence, we comply.
 				nodes = [ ];
-			}
+			} else if (streams.is_stream_add_request(node)) {
+                // Check if this is a new stream start packet (multiple streams)
 
-			// Check if this is a new stream start packet (multiple streams)
-			else if (streams.is_stream_add_request(node)) {
-				log_it("DEBUG", sprintfd("BOSH::%s::Stream Add", session.SID()));
+                log_it("DEBUG", sprintfd("BOSH::%s::Stream Add", session.sid));
 
 				if (session.is_max_streams_violation(node)) {
 					// Make this a session terminate request.
 					node.attrs.type      = 'terminate';
 					node.attrs.condition = 'policy-violation';
-					delete node.attrs.stream;					
-				}
-				else{
-					stream = streams.add_stream(session, node);			
+					delete node.attrs.stream;
+				} else {
+					stream = streams.add_stream(session, node);
 				}
 				//TODO: What should be the value of nodes? 
 			}
 
 			// Check for stream terminate
 			if (streams.is_stream_terminate_request(node)) {
-				log_it("DEBUG", sprintfd('BOSH::%s::Stream Terminate', session.SID()));
+				log_it("DEBUG", sprintfd('BOSH::%s::Stream Terminate', session.sid));
 				// We may be required to terminate one stream, or all
 				// the open streams on this BOSH session.
-				session.handle_client_stream_terminate_request(stream, nodes, 
+				session.handle_client_stream_terminate_request(stream, nodes,
 					node.attrs.condition);
 				// Once a stream is terminated, there is no point sending 
 				// nodes. Which is why we did the needful before sending
@@ -263,82 +278,77 @@ exports.createServer = function(options) {
 	}
 
 
-	function http_error_handler(ex){
+	function http_error_handler(ex) {
 		// We enforce similar semantics as the rest of the node.js for the 'error'
 		// event and throw an exception if it is unhandled
 		if (!bep.emit('error', ex)) {
 			throw new Error(
-				sprintf('ERROR on listener at endpoint: http://%s:%s%s', 
+				sprintf('ERROR on listener at endpoint: http://%s:%s%s',
 					options.host, options.port, options.path)
 			);
-		}		
+		}
 	}
 
 	// When the Connector is able to add the stream, we too do the same and 
 	// respond to the client accordingly.
-	function _on_stream_added(sstate) {
-		log_it("DEBUG", sprintfd("BOSH::%s::stream-added: %s", sstate.state.sid, 
-			sstate.name));
-		var state = sstate.state;
+	function _on_stream_added(stream) {
+		log_it("DEBUG", sprintfd("BOSH::%s::stream-added: %s", stream.state.sid,
+			stream.name));
 		// Send only if this is the 2nd (or more) stream on this BOSH session.
 		// This should work all the time. If anyone finds a case where it will
 		// NOT work, please do let me know.
-		var session = sstate.state.session;
+		var session = stream.session;
 		if (session.no_of_streams() > 1) {
-			var stream = sstate.stream;
 			stream.send_stream_add_response();
-		}		
+		}
 	}
-	
-	// When a respone is received from the connector, try to send it out to the 
+
+	// When a response is received from the connector, try to send it out to the
 	// real client if possible.
-	function _on_repsponse(connector_response, sstate) {
-		log_it("DEBUG", sprintfd("BOSH::%s::%s::response: %s", sstate.state.sid, 
-			sstate.name, connector_response));
+	function _on_repsponse(connector_response, stream) {
+		log_it("DEBUG", sprintfd("BOSH::%s::%s::response: %s", stream.state.sid,
+			stream.name, connector_response));
 		var response = helper.$body({
-			stream: sstate.name
+			stream: stream.name
 		}).cnode(connector_response).tree();
-		var stream = sstate.stream;
-		var session = sstate.state.session;
+		var session = stream.session;
 		session.enqueue_response(response, stream);
 	}
-	
+
 	// This event is raised when the server terminates the connection.
 	// The Connector typically raises this even so that we can tell
 	// the client (user) that such an event has occurred.
-	function _on_terminate(sstate, error) {
+	function _on_terminate(stream, error) {
 		// We send a terminate response to the client.
-		var state = sstate.state;
-		var condition = error ? error : '';
-		var stream = sstate.stream;
+		var condition = error || '';
 		stream.send_stream_terminate_response(condition);
 		stream.terminate(condition);
 
-		var session = sstate.state.session;
+		var session = stream.session;
 		// Should we terminate the BOSH session as well?
 		if (session.no_of_streams() === 0) {
-			session.send_session_terminate_response(session.get_response_object(),
+			session.send_terminate_response(session.get_response_object(),
 				condition);
 			session.terminate(condition);
 		}
 	}
-	
-	// TODO: Read off the Headers request from the request and set that in the 
+
+	// TODO: Read off the Headers request from the request and set that in the
 	// response.
 
 	// Initialize
-	var started = new Date(); // When was this server started?
-	var bosh_options = new opt.BOSH_Options(options); 
+	started = new Date(); // When was this server started?
+	var bosh_options = new opt.BOSH_Options(options);
 	// The BOSH event emitter. People outside will subscribe to
 	// events from this guy. We return an instance of BoshEventPipe
 	// to the outside world when anyone calls createServer()
-	var bep = new bee.BoshEventPipe(options.host, options.port, bosh_options, 
+	bep = new bee.BoshEventPipe(options.host, options.port, bosh_options,
 				http_error_handler, process_bosh_request, get_statistics);
 	bep.on('stream-added', _on_stream_added);
 	bep.on('response', _on_repsponse);
 	bep.on('terminate', _on_terminate);
-	var sessions = new sess.Sessions(bosh_options, bep);
-	var streams = new strm.Streams(bosh_options, bep);
+    sessions = new sess.Sessions(bosh_options, bep);
+	streams = new strm.Streams(bosh_options, bep);
 	bep.set_session_data(sessions);
 	bep.set_stream_data(streams);
 	return bep;
