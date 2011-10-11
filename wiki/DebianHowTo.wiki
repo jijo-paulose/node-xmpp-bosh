@@ -266,3 +266,14 @@ Then, at the end of the file, paste this:
 Save it (CTRL+O using nano), the cronjobs will be updated.
 
 Remember this solution is not the best (not really clean), but is simple and works fine. Advanced users may want to use [DaemontoolsSetup daemontools].
+
+== node.js - Forever ==
+
+[https://github.com/indexzero/forever Forever] is a _A simple CLI tool for ensuring that a given script runs continuously (i.e. forever)_.
+
+*Install Forever:*
+{{{
+sudo npm install forever
+}}}
+
+See [https://github.com/indexzero/forever this page] for help on how to use Forever.
