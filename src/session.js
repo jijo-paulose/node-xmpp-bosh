@@ -300,7 +300,7 @@ Session.prototype = {
                 self.rid += 1;
                 log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s",
                     self.sid, self.rid));
-                if (!self._process_one_request(node, res, streams) || self.cannot_handle_ack(node, res)) {
+                if (self.cannot_handle_ack(node, res) || !self._process_one_request(node, res, streams)) {
                     return false;
                 }
             }
@@ -479,7 +479,7 @@ Session.prototype = {
             stream              : stream.name,
             sid                 : this.sid,
             wait                : this.wait,
-            ver                 : this._ver,
+            ver                 : this.ver, //TODO: This needs to be properly assigned.
             polling             : this.inactivity / 2,
             inactivity          : this.inactivity,
             requests            : this._options.WINDOW_SIZE,
@@ -632,7 +632,7 @@ Session.prototype = {
     // If and when a new HTTP request on this BOSH session is detected,
     // it will clear the pending response and send the packet
     // (in FIFO order).
-    on_no_client_found: function (response, stream) {
+    _on_no_client_found: function (response, stream) {
         var _po = {
             response: response,
             stream: stream
