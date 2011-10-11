@@ -86,7 +86,7 @@ exports.createServer = function (options) {
 
     started = new Date(); // When was this server started?
 
-	function get_statistics() { //TODO: May be moved to the helper functions.
+	function get_statistics() {
 		var stats = [ ];
 		stats.push('<?xml version="1.0" encoding="utf-8"?>');
 		stats.push('<!DOCTYPE html>');
@@ -130,12 +130,20 @@ exports.createServer = function (options) {
 			stream = streams.add_stream(session, node);
 			// Respond to the client.
 			session.send_creation_response(stream);
-			nodes = node.children;
-			// NULL out res so that it is not added again
-			res = null;
-		} else {
-			session = sessions.get_session(node);
-			if (!session) { //No (valid) session ID in BOSH request. Not phare enuph.
+            nodes = node.children;
+            // NULL out res so that it is not added again
+            res = null;
+
+            //
+            // In any case, we should process the XML nodes.
+            //
+            if (nodes.length > 0) {
+                session.emit_nodes_event(nodes, stream);
+            }
+
+        } else {
+            session = sessions.get_session(node);
+            if (!session) { //No (valid) session ID in BOSH request. Not phare enuph.
 				sessions.send_invalid_session_terminate_response(res, node);
 				return;
             }
@@ -154,99 +162,13 @@ exports.createServer = function (options) {
 
 			// Reset the BOSH session timeout
 			session.reset_inactivity_timeout();
+            session.add_request_to_queue(node);
 
-            nodes = session.add_request_to_queue(node);
-
-            if (!!session.handle_acknowledgements(node, res)) {
+            if (!session.process_requests(res, streams)) {
                 return;
             }
-
-            // We handle this condition right at the end so that RID updates
-			// can be processed correctly. If only the stream name is invalid, 
-			// we treat this packet as a valid packet (only as far as updates
-			// to 'rid' are concerned)
-			var stream_name = streams.get_name(node);
-			if (stream_name) {
-				// The stream name is included in the BOSH request.
-				stream = streams.get_stream(node);
-				if (!stream) {
-					// If the stream name is present, but the stream is not valid, we
-					// blow up.
-					// FIXME: Subtle bug alert: We have implicitly ACKed all 
-					// 'rids' till now since we didn't send an 'ack'
-					streams.send_invalid_stream_terminate_response(res, stream_name);
-					return;
-				}
-			}
-
-			// Add to held response objects for this BOSH session
-			session.add_held_http_connection(node.attrs.rid, res);
-
-			// Process pending (queued) responses (if any)
-			session.send_pending_responses();
-
-			if (!session.should_process_packet(node)) {
-                return;
-            }
-
-            // Are we the only stream for this BOSH session?
-			if (!stream) {
-                stream = session.get_only_stream();
-            }
-
-            // Check if this is a stream restart packet.
-			if (streams.is_stream_restart_packet(node)) {
-				log_it("DEBUG", sprintfd("BOSH::%s::Stream Restart", session.sid));
-				// Check if stream is valid
-				if (!stream) {
-					// Make this a session terminate request.
-					node.attrs.type = 'terminate';
-					delete node.attrs.stream;
-					//TODO: What should be the value of nodes? 
-				} else {
-                    stream.handle_restart(node);
-				}
-				// According to http://xmpp.org/extensions/xep-0206.html
-				// the XML nodes in a restart request should be ignored.
-				// Hence, we comply.
-				nodes = [ ];
-			} else if (streams.is_stream_add_request(node)) {
-                // Check if this is a new stream start packet (multiple streams)
-
-                log_it("DEBUG", sprintfd("BOSH::%s::Stream Add", session.sid));
-
-				if (session.is_max_streams_violation(node)) {
-					// Make this a session terminate request.
-					node.attrs.type      = 'terminate';
-					node.attrs.condition = 'policy-violation';
-					delete node.attrs.stream;
-				} else {
-					stream = streams.add_stream(session, node);
-				}
-				//TODO: What should be the value of nodes? 
-			}
-
-			// Check for stream terminate
-			if (streams.is_stream_terminate_request(node)) {
-				log_it("DEBUG", sprintfd('BOSH::%s::Stream Terminate', session.sid));
-				// We may be required to terminate one stream, or all
-				// the open streams on this BOSH session.
-				session.handle_client_stream_terminate_request(stream, nodes,
-					node.attrs.condition);
-				// Once a stream is terminated, there is no point sending 
-				// nodes. Which is why we did the needful before sending
-				// the terminate event.
-				nodes = [ ];
-			}
-
 		} // else (not session start)
 
-		// 
-		// In any case, we should process the XML nodes.
-		// 
-		if (nodes.length > 0) {
-			session.emit_nodes_event(nodes, stream);
-		}
 
 		// Comment #001
 		//
