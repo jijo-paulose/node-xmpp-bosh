@@ -192,35 +192,127 @@ Session.prototype = {
             Object.keys(node.attrs).length < 21;
     },
 
-    add_request_to_queue: function (node) {
-        node.attrs.rid = toNumber(node.attrs.rid);
-        this.queued_requests[node.attrs.rid] = node;
+    _process_one_request: function (node, res, streams) {
+        var stream;
 
-        var nodes = [ ];
+        var nodes = node.children;
+
+        // We handle this condition right at the end so that RID updates
+        // can be processed correctly. If only the stream name is invalid,
+        // we treat this packet as a valid packet (only as far as updates
+        // to 'rid' are concerned)
+        var stream_name = streams.get_name(node);
+        if (stream_name) {
+            // The stream name is included in the BOSH request.
+            stream = streams.get_stream(node);
+            if (!stream) {
+                // If the stream name is present, but the stream is not valid, we
+                // blow up.
+                // FIXME: Subtle bug alert: We have implicitly ACKed all
+                // 'rids' till now since we didn't send an 'ack'
+                streams.send_invalid_stream_terminate_response(res, stream_name);
+                return false;
+            }
+        }
+
+        // Are we the only stream for this BOSH session?
+        if (!stream) { //TODO: verify
+            stream = this.get_only_stream();
+        }
+
+        // Add to held response objects for this BOSH session
+        this.add_held_http_connection(node.attrs.rid, res);
+
+        // Process pending (queued) responses (if any)
+        this.send_pending_responses();
+
+        if (!this.should_process_packet(node)) {
+            return false;
+        }
+
+        // Check if this is a stream restart packet.
+        if (streams.is_stream_restart_packet(node)) {
+            log_it("DEBUG", sprintfd("SESSION::%s::Stream Restart", this.sid));
+            // Check if stream is valid
+            if (!stream) {
+                // Make this a session terminate request.
+                node.attrs.type = 'terminate';
+                delete node.attrs.stream;
+                //TODO: What should be the value of nodes?
+            } else {
+                stream.handle_restart(node);
+            }
+            // According to http://xmpp.org/extensions/xep-0206.html
+            // the XML nodes in a restart request should be ignored.
+            // Hence, we comply.
+            nodes = [ ];
+        } else if (streams.is_stream_add_request(node)) {
+            // Check if this is a new stream start packet (multiple streams)
+
+            log_it("DEBUG", sprintfd("SESSION::%s::Stream Add", this.sid));
+
+            if (this.is_max_streams_violation(node)) {
+                // Make this a session terminate request.
+                node.attrs.type = 'terminate';
+                node.attrs.condition = 'policy-violation';
+                delete node.attrs.stream;
+            } else {
+                stream = streams.add_stream(this, node);
+            }
+        }
+
+        // Check for stream terminate
+        if (streams.is_stream_terminate_request(node)) {
+            log_it("DEBUG", sprintfd('SESSION::%s::Stream Terminate', this.sid));
+            // We may be required to terminate one stream, or all
+            // the open streams on this BOSH session.
+            this.handle_client_stream_terminate_request(stream, nodes,
+                node.attrs.condition);
+            // Once a stream is terminated, there is no point sending
+            // nodes. Which is why we did the needful before sending
+            // the terminate event.
+            nodes = [ ];
+        }
+
+        //
+        // In any case, we should process the XML nodes.
+        //
+        if (nodes.length > 0) {
+            this.emit_nodes_event(nodes, stream);
+        }
+        return true;
+    },
+
+
+    process_requests: function (res, streams) {
         // Process all queued requests
         var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
         _queued_request_keys.sort(dutil.num_cmp);
 
         var self = this;
+        var node;
         _queued_request_keys.forEach(function (rid) {
             if (rid === self.rid + 1) {
                 // This is the next logical packet to be processed.
-                nodes = nodes.concat(self.queued_requests[rid].children);
+                node = self.queued_requests[rid];
                 delete self.queued_requests[rid];
-
                 // Increment the 'rid'
                 self.rid += 1;
                 log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s",
                     self.sid, self.rid));
+                if (!self._process_one_request(node, res, streams) || self.cannot_handle_ack(node, res)) {
+                    return false;
+                }
             }
         });
-
-        return nodes;
-        // Alternatively, we can also call ourselves recursively to process
-        // the pending queue. That way, we won't need to sort() the queued
-        // requests. Think about it...
+        return true;
     },
-    
+
+    add_request_to_queue: function (node) {
+        node.attrs.rid = toNumber(node.attrs.rid);
+        this.queued_requests[node.attrs.rid] = node;
+    },
+
     // Adds the response object 'res' to the list of held response
     // objects for this BOSH session. Also sets the associated 'rid' of
     // the response object 'res' to 'rid'
@@ -691,8 +783,8 @@ Session.prototype = {
             // No stream name specified. This packet needs to be
             // broadcast to all open streams on this BOSH session.
             log_it("DEBUG",
-                sprintfd("SESSION::emitting nodes to all streams:No Stream Name specified:%s",
-                    nodes));
+                sprintfd("SESSION::%s:emitting nodes to all streams:No Stream Name specified:%s",
+                    this.sid, nodes));
             var self = this;
             this.streams.forEach(function (stream) {
                 if (stream) {
@@ -700,9 +792,8 @@ Session.prototype = {
                 }
             });
         } else {
-            log_it("DEBUG", function () {
-                return sprintf("SESSION::%s:emitting nodes:%s", stream.name, nodes);
-            });
+            log_it("DEBUG", sprintfd("SESSION::%s:stream::%s:emitting nodes:%s",
+                this.sid, stream.name, nodes));
             this._bep.emit('nodes', nodes, stream);
         }
     },
@@ -744,7 +835,7 @@ Session.prototype = {
         ro.send_response(response_obj.toString());
     },
 
-    handle_acknowledgements: function (node, res) {
+    cannot_handle_ack: function (node, res) {
         var self = this;
         if (this.ack) { // Has the client enabled ACKs?
             /* Begin ACK handling */
