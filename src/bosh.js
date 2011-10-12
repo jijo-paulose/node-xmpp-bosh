@@ -66,14 +66,14 @@ var log_it      = dutil.log_it;
 
 
 exports.createServer = function (options) {
-	// 
+	//
 	// +-------+
 	// | NOTE: |
 	// +-------+
-	// 
-	// Always ensure that you update the definitions of the objects (in the 
-	// comments) as and when you add/remove members from them. Please try to 
-	// keep these object definitions up-to-date since it is the main 
+	//
+	// Always ensure that you update the definitions of the objects (in the
+	// comments) as and when you add/remove members from them. Please try to
+	// keep these object definitions up-to-date since it is the main
 	// (and only) place of reference for object structure.
 	//
 
@@ -162,9 +162,9 @@ exports.createServer = function (options) {
 
 			// Reset the BOSH session timeout
 			session.reset_inactivity_timeout();
-            session.add_request_to_queue(node);
 
-            if (!session.process_requests(res, streams)) {
+            session.add_request_to_queue(node, res);
+            if (!session.process_requests(streams)) {
                 return;
             }
 		} // else (not session start)
@@ -172,14 +172,14 @@ exports.createServer = function (options) {
 
 		// Comment #001
 		//
-		// Respond to any extra "held" response objects that we actually 
+		// Respond to any extra "held" response objects that we actually
 		// should not be holding on to (Thanks Stefan)
 		//
 		// This is in disagreement with the XEP
 		// http://xmpp.org/extensions/xep-0124.html#overactive
 		// if the client sent an empty <body/> tag and was overactive
 		//
-		// However, we do it since many flaky clients and network 
+		// However, we do it since many flaky clients and network
 		// configurations exist in the wild.
 		//
 		session.respond_to_extra_held_response_objects();

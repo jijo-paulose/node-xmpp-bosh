@@ -23,18 +23,18 @@
  *
  */
 
-var uuid        = require('node-uuid');
-var us          = require('underscore');
-var dutil       = require('./dutil.js');
-var helper      = require('./helper.js');
-var responsejs  = require('./response.js');
-var assert      = require('assert').ok;
+var uuid = require('node-uuid');
+var us = require('underscore');
+var dutil = require('./dutil.js');
+var helper = require('./helper.js');
+var responsejs = require('./response.js');
+var assert = require('assert').ok;
 
 
-var toNumber    = us.toNumber;
-var sprintf     = dutil.sprintf;
-var sprintfd    = dutil.sprintfd;
-var log_it      = dutil.log_it;
+var toNumber = us.toNumber;
+var sprintf = dutil.sprintf;
+var sprintfd = dutil.sprintfd;
+var log_it = dutil.log_it;
 
 var BOSH_XMLNS = 'http://jabber.org/protocol/httpbind'; //TODO: might not be required
 
@@ -100,8 +100,7 @@ function Session(node, options, bep, call_on_terminate) {
         this.ua = node.attrs.ua;
     }
 
-    this.hold = this.hold > options.MAX_BOSH_CONNECTIONS ?
-            options.MAX_BOSH_CONNECTIONS : this.hold;
+    this.hold = this.hold > options.MAX_BOSH_CONNECTIONS ? options.MAX_BOSH_CONNECTIONS : this.hold;
 
     this.res = [ ]; // res needs is sorted in 'rid' order.
 
@@ -181,8 +180,7 @@ Session.prototype = {
     is_valid_packet: function (node) {
         log_it("DEBUG",
             sprintfd("SESSION::%s::is_valid_packet::node.attrs.rid:%s, state.rid:%s",
-                this.sid, node.attrs.rid, this.rid)
-            );
+                this.sid, node.attrs.rid, this.rid));
 
         // Allow variance of "window" rids on either side. This is in violation
         // of the XEP though.
@@ -284,22 +282,25 @@ Session.prototype = {
     },
 
 
-    process_requests: function (res, streams) {
+    process_requests: function (streams) {
         // Process all queued requests
         var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
         _queued_request_keys.sort(dutil.num_cmp);
 
         var self = this;
         var node;
+        var res;
         _queued_request_keys.forEach(function (rid) {
             if (rid === self.rid + 1) {
                 // This is the next logical packet to be processed.
-                node = self.queued_requests[rid];
+                node = self.queued_requests[rid].node;
+                res = self.queued_requests[rid].res;
                 delete self.queued_requests[rid];
                 // Increment the 'rid'
                 self.rid += 1;
                 log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s",
                     self.sid, self.rid));
+
                 if (self.cannot_handle_ack(node, res) || !self._process_one_request(node, res, streams)) {
                     return false;
                 }
@@ -308,9 +309,9 @@ Session.prototype = {
         return true;
     },
 
-    add_request_to_queue: function (node) {
+    add_request_to_queue: function (node, res) {
         node.attrs.rid = toNumber(node.attrs.rid);
-        this.queued_requests[node.attrs.rid] = node;
+        this.queued_requests[node.attrs.rid] = {node: node, res: res};
     },
 
     // Adds the response object 'res' to the list of held response
