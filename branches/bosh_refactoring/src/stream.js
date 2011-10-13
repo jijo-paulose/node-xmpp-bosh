@@ -1,7 +1,7 @@
 // -*-  tab-width:4  -*-
 
 /*
- * Copyright (c) 2011 Dhruv Matani
+ * Copyright (c) 2011 Dhruv Matani, Anup Kalbalia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@ var uuid        = require('node-uuid');
 var helper      = require('./helper.js');
 var us          = require('underscore');
 var responsejs  = require('./response.js');
+var $terminate  = helper.$terminate;
+var $body       = helper.$body;
 
 function Stream(session, node, options, bep, call_on_terminate) {
     this._on_terminate  = call_on_terminate;
@@ -73,7 +75,7 @@ Stream.prototype = {
 			attrs.condition  = condition;
 		}
 
-		var msg = helper.$terminate(attrs);
+		var msg = $terminate(attrs);
 		session.enqueue_response(msg, this);
 
 		// Mark the stream as terminated AFTER the terminate response has been queued.
@@ -99,12 +101,12 @@ Stream.prototype = {
 			// This isn't mentioned in the spec.
 			attrs.to = this.from;
 		}
-		var response = helper.$body(attrs);
+		var response = $body(attrs);
 		session.enqueue_response(response, this);
 	}
 };
 
-function Streams(bosh_options, bep) {
+function StreamStore(bosh_options, bep) {
 
     this._bosh_options = bosh_options;
 	this._bep = bep;
@@ -114,9 +116,9 @@ function Streams(bosh_options, bep) {
 	// The same but by stream name.
 	// Format: {
 	//   stream_name: {
-	//     name: "Stream Name", 
-	//     to: "domain.tld", 
-	//     terminated: true/false, 
+	//     name: "Stream Name",
+	//     to: "domain.tld",
+	//     terminated: true/false,
 	//     state: The sid_state object (as above)
 	//     from (optional): The JID of the user for this stream
 	//     route (optional): The endpoint of the server to connect to (xmpp:domain:port)
@@ -132,15 +134,15 @@ function Streams(bosh_options, bep) {
 	};
 
 	// This keeps in memory the terminate condition for a terminated stream. Both
-	// this, and terminated_sessions are used when the connection between nxb and 
-	// xmpp server breaks and all the session related info is wiped out. We 
-	// preserve the condition in this case to let the client know why was its 
+	// this, and terminated_sessions are used when the connection between nxb and
+	// xmpp server breaks and all the session related info is wiped out. We
+	// preserve the condition in this case to let the client know why was its
 	// connection broken.
 	this._terminated_streams = {
 	};
 }
 
-Streams.prototype = {
+StreamStore.prototype = {
 
     get_active_no: function () {
 		return this._sn_info.length;
@@ -203,7 +205,7 @@ Streams.prototype = {
 		this._sn_state[stream.name] = stream;
 		this.stat_stream_add();
 		// Don't yet respond to the client. Wait for the 'stream-added' event
-		// from the Connector.		
+		// from the Connector.
 		this._bep.emit('stream-add', stream);
 		return stream;
 	},
@@ -232,4 +234,4 @@ Streams.prototype = {
 	}
 };
 
-exports.Streams = Streams;
+exports.StreamStore = StreamStore;

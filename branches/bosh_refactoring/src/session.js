@@ -1,7 +1,7 @@
 // -*-  tab-width:4  -*-
 
 /*
- * Copyright (c) 2011 Dhruv Matani
+ * Copyright (c) 2011 Dhruv Matani, Anup Kalbalia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,8 @@ var toNumber = us.toNumber;
 var sprintf = dutil.sprintf;
 var sprintfd = dutil.sprintfd;
 var log_it = dutil.log_it;
+var $terminate = helper.$terminate;
+var $body = helper.$body;
 
 var BOSH_XMLNS = 'http://jabber.org/protocol/httpbind'; //TODO: might not be required
 
@@ -147,6 +149,10 @@ function Session(node, options, bep, call_on_terminate) {
     // This BOSH session have a pending nextTick() handler?
     this.has_next_tick = false;
 
+    this.__defineGetter__("no_of_streams", function(){
+        return this.streams.length;
+    })
+
 }
 
 Session.prototype = {
@@ -190,14 +196,14 @@ Session.prototype = {
             Object.keys(node.attrs).length < 21;
     },
 
-    _process_one_request: function (node, res, streams) {
-        /* What does this function do?
-         * [1] Parameters
-         * [2] Expectation
-         * [3] Side effects (if any)
-         * [4] Return value significance (if any)
-         *
-         */
+    /* What does this function do?
+     * [1] Parameters
+     * [2] Expectation
+     * [3] Side effects (if any)
+     * [4] Return value significance (if any)
+     *
+     */
+    _process_one_request: function (node, res, stream_store) {
         var stream;
         var nodes = node.children;
 
@@ -205,16 +211,16 @@ Session.prototype = {
         // can be processed correctly. If only the stream name is invalid,
         // we treat this packet as a valid packet (only as far as updates
         // to 'rid' are concerned)
-        var stream_name = streams.get_name(node);
+        var stream_name = stream_store.get_name(node);
         if (stream_name) {
             // The stream name is included in the BOSH request.
-            stream = streams.get_stream(node);
+            stream = stream_store.get_stream(node);
             if (!stream) {
                 // If the stream name is present, but the stream is not valid, we
                 // blow up.
                 // FIXME: Subtle bug alert: We have implicitly ACKed all
                 // 'rids' till now since we didn't send an 'ack'
-                streams.send_invalid_stream_terminate_response(res, stream_name);
+                stream_store.send_invalid_stream_terminate_response(res, stream_name);
                 return false;
             }
         }
@@ -230,12 +236,8 @@ Session.prototype = {
         // Process pending (queued) responses (if any)
         this.send_pending_responses();
 
-        if (!this.should_process_packet(node)) {
-            return false;
-        }
-
         // Check if this is a stream restart packet.
-        if (streams.is_stream_restart_packet(node)) {
+        if (stream_store.is_stream_restart_packet(node)) {
             log_it("DEBUG", sprintfd("SESSION::%s::Stream Restart", this.sid));
             // Check if stream is valid
             if (!stream) {
@@ -254,7 +256,7 @@ Session.prototype = {
             // the XML nodes in a restart request should be ignored.
             // Hence, we comply.
             nodes = [ ];
-        } else if (streams.is_stream_add_request(node)) {
+        } else if (stream_store.is_stream_add_request(node)) {
             // Check if this is a new stream start packet (multiple streams)
 
             log_it("DEBUG", sprintfd("SESSION::%s::Stream Add", this.sid));
@@ -265,12 +267,12 @@ Session.prototype = {
                 node.attrs.condition = 'policy-violation';
                 delete node.attrs.stream;
             } else {
-                stream = streams.add_stream(this, node);
+                stream = stream_store.add_stream(this, node);
             }
         }
 
         // Check for stream terminate
-        if (streams.is_stream_terminate_request(node)) {
+        if (stream_store.is_stream_terminate_request(node)) {
             log_it("DEBUG", sprintfd('SESSION::%s::Stream Terminate', this.sid));
             // We may be required to terminate one stream, or all
             // the open streams on this BOSH session.
@@ -292,7 +294,7 @@ Session.prototype = {
     },
 
 
-    process_requests: function (streams) {
+    process_requests: function (stream_store) {
         // Process all queued requests
         var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
         _queued_request_keys.sort(dutil.num_cmp);
@@ -311,7 +313,7 @@ Session.prototype = {
                 log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s",
                     self.sid, self.rid));
 
-                if (self.cannot_handle_ack(node, res) || !self._process_one_request(node, res, streams)) {
+                if (self.cannot_handle_ack(node, res) || !self._process_one_request(node, res, stream_store)) {
                     return false;
                 }
             }
@@ -362,7 +364,7 @@ Session.prototype = {
             // Send back an empty body element.
             // We don't add this to unacked_responses since it's wasteful. NO
             // WE ACTUALLY DO add it to unacked_responses
-            self._send_no_requeue(ro, helper.$body());
+            self._send_no_requeue(ro, $body());
         }, this.wait * 1000);
 
         log_it("DEBUG",
@@ -472,7 +474,7 @@ Session.prototype = {
         if (condition) {
             attrs.condition = condition;
         }
-        var msg = helper.$terminate(attrs);
+        var msg = $terminate(attrs);
         this._send_no_requeue(ro, msg);
     },
 
@@ -514,7 +516,7 @@ Session.prototype = {
             attrs.to = stream.from;
         }
 
-        var msg = helper.$body(attrs);
+        var msg = $body(attrs);
         this.enqueue_response(msg, stream);
     },
 
@@ -817,7 +819,7 @@ Session.prototype = {
                 sprintfd("Session::In RTEHRO %s:: state res length: %s::state hold:%s",
                     this.sid, this.res.length, this.hold));
             var ro = this.get_response_object();
-            this._send_no_requeue(ro, helper.$body());
+            this._send_no_requeue(ro, $body());
         }
     },
 
@@ -897,7 +899,7 @@ Session.prototype = {
                     // We inject a response packet into the pending queue to
                     // notify the client that it _may_ have missed something.
                     this.pending.push({
-                        response: helper.$body({
+                        response: $body({
                             report: node.attrs.ack + 1,
                             time: new Date() - _ts
                         }),
@@ -952,7 +954,7 @@ Session.prototype = {
                         //
                         log_it("DEBUG", sprintfd("SESSION::%s::sending empty BODY for: %s",
                             self.sid, rid));
-                        self._send_immediate(res, helper.$body());
+                        self._send_immediate(res, $body());
                         quit_me = true;
                     } else {
                         //
@@ -978,29 +980,13 @@ Session.prototype = {
         }
     },
 
-    // Should we process this packet?
-    should_process_packet: function (node) {
-        if (node.attrs.rid > this.rid) {
-            // Not really... The request will remain in queued_requests
-            // and the response object has already been held
-            log_it("INFO", sprintfd("SESSION::%s::not processing packet: %s",
-                this.sid, node));
-            return false;
-        }
-        return true;
-    },
-
     is_max_streams_violation: function () {
         return (this.streams.length > this._options.MAX_STREAMS_PER_SESSION);
-    },
-
-    no_of_streams: function () {
-        return this.streams.length;
     }
 };
 
 
-function Sessions(bosh_options, bep) {
+function SessionStore(bosh_options, bep) {
 
     this._bosh_options = bosh_options;
 
@@ -1030,7 +1016,7 @@ function Sessions(bosh_options, bep) {
 // but they should be the exceptions (and there should be a good reason for 
 // such an occurence) and not the rule.
 // 
-Sessions.prototype = {
+SessionStore.prototype = {
 
     get_active_no: function () {
         return this._sid_info.length;
@@ -1102,4 +1088,4 @@ Sessions.prototype = {
 
 };
 
-exports.Sessions = Sessions;
+exports.SessionStore = SessionStore;

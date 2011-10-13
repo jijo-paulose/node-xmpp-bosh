@@ -1,7 +1,7 @@
 // -*-  tab-width:4  -*-
 
 /*
- * Copyright (c) 2011 Dhruv Matani
+ * Copyright (c) 2011 Dhruv Matani, Anup Kalbalia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,14 +39,14 @@ dutil.copy(BoshEventPipe.prototype, {
 		return this.server.close();
 	},
 
-	set_session_data: function (sessions) {
-		this.sid_state = sessions.get_sessions_obj();
+	set_session_data: function (session_store) {
+		this.sid_state = session_store.get_sessions_obj();
 	},
 
-	set_stream_data: function (streams) {
-		this.sn_state = streams.get_streams_obj();
-		this.stat_stream_add = streams.stat_stream_add;
-		this.stat_stream_terminate = streams.stat_stream_terminate;
+	set_stream_data: function (stream_store) {
+		this.sn_state = stream_store.get_streams_obj();
+		this.stat_stream_add = stream_store.stat_stream_add;
+		this.stat_stream_terminate = stream_store.stat_stream_terminate;
 	}
 });
 

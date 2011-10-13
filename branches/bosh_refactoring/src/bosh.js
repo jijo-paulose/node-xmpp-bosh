@@ -1,7 +1,7 @@
 // -*-  tab-width:4  -*-
 
 /*
- * Copyright (c) 2011 Dhruv Matani
+ * Copyright (c) 2011 Dhruv Matani, Anup Kalbalia
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,8 +78,8 @@ exports.createServer = function (options) {
 	//
 
     var started;
-    var sessions;
-    var streams;
+    var session_store;
+    var stream_store;
     var bep;
     var bosh_options;
     var server;
@@ -105,12 +105,12 @@ exports.createServer = function (options) {
 			.up()
 			.c('h3').t('Bidirectional-streams Over Synchronous HTTP').up()
 			.c('p').t(sprintf('Uptime: %s', dutil.time_diff(started, new Date()))).up()
-			.c('p').t(sprintf('%s/%s active %s', sessions.get_active_no(),
-							sessions.get_total_no(),
-							dutil.pluralize(sessions.get_total_no(), 'session'))).up()
-			.c('p').t(sprintf('%s/%s active %s', streams.get_active_no(),
-							streams.get_total_no(),
-							dutil.pluralize(streams.get_total_no(), 'stream'))).up()
+			.c('p').t(sprintf('%s/%s active %s', session_store.get_active_no(),
+							session_store.get_total_no(),
+							dutil.pluralize(session_store.get_total_no(), 'session'))).up()
+			.c('p').t(sprintf('%s/%s active %s', stream_store.get_active_no(),
+							stream_store.get_total_no(),
+							dutil.pluralize(stream_store.get_total_no(), 'stream'))).up()
 			.tree();
 		stats.push(content.toString());
 		return stats.join('\n');
@@ -124,10 +124,10 @@ exports.createServer = function (options) {
 		var stream = null;
 
 		// Check if this is a session start packet.
-		if (sessions.is_session_creation_packet(node)) {
+		if (session_store.is_session_creation_packet(node)) {
 			log_it("DEBUG", "BOSH::Session creation");
-			session = sessions.add_session(node, res);
-			stream = streams.add_stream(session, node);
+			session = session_store.add_session(node, res);
+			stream = stream_store.add_stream(session, node);
 
 			// Respond to the client.
 			session.send_creation_response(stream);
@@ -144,9 +144,9 @@ exports.createServer = function (options) {
             }
 
         } else {
-            session = sessions.get_session(node);
+            session = session_store.get_session(node);
             if (!session) { //No (valid) session ID in BOSH request. Not phare enuph.
-				sessions.send_invalid_session_terminate_response(res, node);
+				session_store.send_invalid_session_terminate_response(res, node);
 				return;
             }
             try {
@@ -166,7 +166,7 @@ exports.createServer = function (options) {
 			session.reset_inactivity_timeout();
 
             session.add_request_to_queue(node, res);
-            if (!session.process_requests(streams)) {
+            if (!session.process_requests(stream_store)) {
                 return;
             }
 		} // else (not session start)
@@ -232,7 +232,7 @@ exports.createServer = function (options) {
 		// This should work all the time. If anyone finds a case where it will
 		// NOT work, please do let me know.
 		var session = stream.session;
-		if (session.no_of_streams() > 1) {
+		if (session.no_of_streams > 1) {
 			stream.send_stream_add_response();
 		}
 	}
@@ -260,7 +260,7 @@ exports.createServer = function (options) {
 
 		var session = stream.session;
 		// Should we terminate the BOSH session as well?
-		if (session.no_of_streams() === 0) {
+		if (session.no_of_streams === 0) {
 			session.send_terminate_response(session.get_response_object(),
 				condition);
 			session.terminate(condition);
@@ -277,9 +277,9 @@ exports.createServer = function (options) {
 	bep.on('stream-added', _on_stream_added);
 	bep.on('response', _on_repsponse);
 	bep.on('terminate', _on_terminate);
-    sessions = new sess.Sessions(bosh_options, bep);
-	streams = new strm.Streams(bosh_options, bep);
-	bep.set_session_data(sessions);
-	bep.set_stream_data(streams);
+    session_store = new sess.SessionStore(bosh_options, bep);
+	stream_store = new strm.StreamStore(bosh_options, bep);
+	bep.set_session_data(session_store);
+	bep.set_stream_data(stream_store);
 	return bep;
 };
