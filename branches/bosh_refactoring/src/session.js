@@ -196,13 +196,14 @@ Session.prototype = {
             Object.keys(node.attrs).length < 21;
     },
 
-    /* What does this function do?
-     * [1] Parameters
-     * [2] Expectation
-     * [3] Side effects (if any)
-     * [4] Return value significance (if any)
-     *
-     */
+    //
+    //  _process_one_request accepts a request, "node", the response object, "res", associated with that request, and
+    // the stream_store which holds all the streams for the bosh server.
+    // The adds the response object to the list of held http connections and processes the request. It uses the
+    // stream_store to call stream functions.
+    // The method returns false if it is unable to process the request. On successfully processing the request it
+    // returns true.
+    //
     _process_one_request: function (node, res, stream_store) {
         var stream;
         var nodes = node.children;
@@ -848,14 +849,12 @@ Session.prototype = {
         ro.send_response(response_obj.toString());
     },
 
+    //
+    // cannot_handle_ack accepts a request, "node", and a response object, "res" and handles acknowledgement for that
+    // node. It uses the response object "res" to send response to the client in case of abnormal conditions in which
+    // case it returns true or else it returns false.
+    //
     cannot_handle_ack: function (node, res) {
-        /* What does this function do?
-         * [1] Parameters
-         * [2] Expectation
-         * [3] Side effects (if any)
-         * [4] Return value significance (if any)
-         *
-         */
         var self = this;
         if (this.ack) { // Has the client enabled ACKs?
             /* Begin ACK handling */
