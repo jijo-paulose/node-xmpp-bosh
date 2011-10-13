@@ -191,8 +191,14 @@ Session.prototype = {
     },
 
     _process_one_request: function (node, res, streams) {
+        /* What does this function do?
+         * [1] Parameters
+         * [2] Expectation
+         * [3] Side effects (if any)
+         * [4] Return value significance (if any)
+         *
+         */
         var stream;
-
         var nodes = node.children;
 
         // We handle this condition right at the end so that RID updates
@@ -236,7 +242,11 @@ Session.prototype = {
                 // Make this a session terminate request.
                 node.attrs.type = 'terminate';
                 delete node.attrs.stream;
-                //TODO: What should be the value of nodes?
+                // Q: What should be the value of nodes?
+                //
+                // A: nodes may be nulled out (or emptied) since this
+                // is an invalid BOSH packet. Dunno if we can trust
+                // the XML (xmpp) data.
             } else {
                 stream.handle_restart(node);
             }
@@ -837,6 +847,13 @@ Session.prototype = {
     },
 
     cannot_handle_ack: function (node, res) {
+        /* What does this function do?
+         * [1] Parameters
+         * [2] Expectation
+         * [3] Side effects (if any)
+         * [4] Return value significance (if any)
+         *
+         */
         var self = this;
         if (this.ack) { // Has the client enabled ACKs?
             /* Begin ACK handling */
