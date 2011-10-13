@@ -128,9 +128,11 @@ exports.createServer = function (options) {
 			log_it("DEBUG", "BOSH::Session creation");
 			session = sessions.add_session(node, res);
 			stream = streams.add_stream(session, node);
+
 			// Respond to the client.
 			session.send_creation_response(stream);
             nodes = node.children;
+
             // NULL out res so that it is not added again
             res = null;
 
