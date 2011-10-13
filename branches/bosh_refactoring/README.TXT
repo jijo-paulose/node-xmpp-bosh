@@ -18,7 +18,7 @@ Project Home Page: http://code.google.com/p/node-xmpp-bosh/
     [3] For running from within a node application, type:
     $ node
     > var nxb    = require("node-xmpp-bosh");
-    > var server = nxb.start();
+    > var server = nxb.start_bosh();
     > 
     > // To stop, type:
     > // server.stop();
