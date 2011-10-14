@@ -149,9 +149,9 @@ function Session(node, options, bep, call_on_terminate) {
     // This BOSH session have a pending nextTick() handler?
     this.has_next_tick = false;
 
-    this.__defineGetter__("no_of_streams", function(){
+    this.__defineGetter__("no_of_streams", function () {
         return this.streams.length;
-    })
+    });
 
 }
 
@@ -203,6 +203,8 @@ Session.prototype = {
     // stream_store to call stream functions.
     // The method returns false if it is unable to process the request. On successfully processing the request it
     // returns true.
+    // A return value of "true" doesn't mean that the request has been processed - just that it has been queued for
+    // processing
     //
     _process_one_request: function (node, res, stream_store) {
         var stream;
@@ -300,25 +302,27 @@ Session.prototype = {
         var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
         _queued_request_keys.sort(dutil.num_cmp);
 
-        var self = this;
         var node;
         var res;
-        _queued_request_keys.forEach(function (rid) {
-            if (rid === self.rid + 1) {
-                // This is the next logical packet to be processed.
-                node = self.queued_requests[rid].node;
-                res = self.queued_requests[rid].res;
-                delete self.queued_requests[rid];
-                // Increment the 'rid'
-                self.rid += 1;
-                log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s",
-                    self.sid, self.rid));
+        var i;
+        var rid;
 
-                if (self.cannot_handle_ack(node, res) || !self._process_one_request(node, res, stream_store)) {
+        for (i = 0; i < _queued_request_keys.length; i++) {
+            rid = _queued_request_keys[i];
+            if (rid === this.rid + 1) {
+                // This is the next logical packet to be processed.
+                node = this.queued_requests[rid].node;
+                res = this.queued_requests[rid].res;
+                delete this.queued_requests[rid];
+                // Increment the 'rid'
+                this.rid += 1;
+                log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s", this.sid, this.rid));
+
+                if (this.cannot_handle_ack(node, res) || !this._process_one_request(node, res, stream_store)) {
                     return false;
                 }
             }
-        });
+        }
         return true;
     },
 
@@ -954,6 +958,7 @@ Session.prototype = {
                         log_it("DEBUG", sprintfd("SESSION::%s::sending empty BODY for: %s",
                             self.sid, rid));
                         self._send_immediate(res, $body());
+
                         quit_me = true;
                     } else {
                         //
