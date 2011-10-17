@@ -202,6 +202,8 @@ Session.prototype = {
     // It process the request node. uses the stream_store to call stream functions.
     //
     _process_one_request: function (node, stream, stream_store) {
+        log_it("DEBUG", sprintfd("SESSION::%s::_process_one_request::session RID: %s, stream: %s", this.sid,
+            this.rid, !!stream));
         var nodes = node.children;
         // Check if this is a stream restart packet.
         if (stream_store.is_stream_restart_packet(node)) {
@@ -265,6 +267,7 @@ Session.prototype = {
     // exhausts the queued requests.
     //
     process_requests: function (stream_store) {
+        log_it("DEBUG", sprintfd("SESSION::%s::process_requests::session RID: %s", this.sid, this.rid));
         // Process all queued requests
         var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
         _queued_request_keys.sort(dutil.num_cmp);
@@ -304,6 +307,7 @@ Session.prototype = {
     // processing.
     //
     add_request_for_processing: function (node, res, stream_store) {
+        log_it("DEBUG", sprintfd("SESSION::%s::add_request_for_processing::session RID: %s", this.sid, this.rid));
         node.attrs.rid = toNumber(node.attrs.rid);
         this.queued_requests[node.attrs.rid] = {node: node};
 
@@ -338,6 +342,7 @@ Session.prototype = {
             // Process pending (queued) responses (if any)
             this.send_pending_responses();
         } else {
+            log_it("INFO", sprintfd("SESSION::%s::cannot handle ack::session RID: %s", this.sid, this.rid));
             should_process = false;
         }
         if (this.queued_requests[node.attrs.rid]) {
@@ -817,7 +822,7 @@ Session.prototype = {
             // No stream name specified. This packet needs to be
             // broadcast to all open streams on this BOSH session.
             log_it("DEBUG",
-                sprintfd("SESSION::%s:emitting nodes to all streams:No Stream Name specified:%s",
+                sprintfd("SESSION::%s::emitting nodes to all streams:No Stream Name specified:%s",
                     this.sid, nodes));
             var self = this;
             this.streams.forEach(function (stream) {
@@ -826,7 +831,7 @@ Session.prototype = {
                 }
             });
         } else {
-            log_it("DEBUG", sprintfd("SESSION::%s:stream::%s:emitting nodes:%s",
+            log_it("DEBUG", sprintfd("SESSION::%s::stream::%s::emitting nodes:%s",
                 this.sid, stream.name, nodes));
             this._bep.emit('nodes', nodes, stream);
         }
