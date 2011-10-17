@@ -197,48 +197,12 @@ Session.prototype = {
     },
 
     //
-    //  _process_one_request accepts a request, "node", the response object, "res", associated with that request, and
-    // the stream_store which holds all the streams for the bosh server.
-    // The adds the response object to the list of held http connections and processes the request. It uses the
-    // stream_store to call stream functions.
-    // The method returns false if it is unable to process the request. On successfully processing the request it
-    // returns true.
-    // A return value of "true" doesn't mean that the request has been processed - just that it has been queued for
-    // processing
+    //  _process_one_request accepts a request, "node", the response object, "res", associated with that request,
+    // and the stream_store which holds all the streams for the bosh server.
+    // It process the request node. uses the stream_store to call stream functions.
     //
-    _process_one_request: function (node, res, stream_store) {
-        var stream;
+    _process_one_request: function (node, stream, stream_store) {
         var nodes = node.children;
-
-        // We handle this condition right at the end so that RID updates
-        // can be processed correctly. If only the stream name is invalid,
-        // we treat this packet as a valid packet (only as far as updates
-        // to 'rid' are concerned)
-        var stream_name = stream_store.get_name(node);
-        if (stream_name) {
-            // The stream name is included in the BOSH request.
-            stream = stream_store.get_stream(node);
-            if (!stream) {
-                // If the stream name is present, but the stream is not valid, we
-                // blow up.
-                // FIXME: Subtle bug alert: We have implicitly ACKed all
-                // 'rids' till now since we didn't send an 'ack'
-                stream_store.send_invalid_stream_terminate_response(res, stream_name);
-                return false;
-            }
-        }
-
-        // Are we the only stream for this BOSH session?
-        if (!stream) { //TODO: verify
-            stream = this.get_only_stream();
-        }
-
-        // Add to held response objects for this BOSH session
-        this.add_held_http_connection(node.attrs.rid, res);
-
-        // Process pending (queued) responses (if any)
-        this.send_pending_responses();
-
         // Check if this is a stream restart packet.
         if (stream_store.is_stream_restart_packet(node)) {
             log_it("DEBUG", sprintfd("SESSION::%s::Stream Restart", this.sid));
@@ -293,17 +257,20 @@ Session.prototype = {
         if (nodes.length > 0) {
             this.emit_nodes_event(nodes, stream);
         }
-        return true;
     },
 
-
+    //
+    // process_requests processes the requests in the increasing order of their RID's by calling
+    // _process_one_request for each request. Returns as soon as it finds an request out of order or when it
+    // exhausts the queued requests.
+    //
     process_requests: function (stream_store) {
         // Process all queued requests
         var _queued_request_keys = Object.keys(this.queued_requests).map(toNumber);
         _queued_request_keys.sort(dutil.num_cmp);
 
         var node;
-        var res;
+        var stream;
         var i;
         var rid;
 
@@ -312,23 +279,72 @@ Session.prototype = {
             if (rid === this.rid + 1) {
                 // This is the next logical packet to be processed.
                 node = this.queued_requests[rid].node;
-                res = this.queued_requests[rid].res;
+                stream = this.queued_requests[rid].stream;
                 delete this.queued_requests[rid];
                 // Increment the 'rid'
                 this.rid += 1;
                 log_it("DEBUG", sprintfd("SESSION::%s::updated RID to: %s", this.sid, this.rid));
-
-                if (this.cannot_handle_ack(node, res) || !this._process_one_request(node, res, stream_store)) {
-                    return false;
-                }
+                this._process_one_request(node, stream, stream_store);
             }
         }
-        return true;
     },
 
-    add_request_to_queue: function (node, res) {
+    //
+    // add_request_for_processing accepts a request (node), the response object associated with that request (res)
+    // and the steam_store for calling stream functions.
+    // It adds the node to the queue for processing. Also determines which stream this request may belong to, and
+    // adds this stream to the request queue so that this can be used while processing the node. - Avoided multiple
+    // stream mixing bug. http://code.google.com/p/node-xmpp-bosh/issues/detail?id=25
+    // It also adds the response object to the list of held http connections before calling the process_requests
+    // method.
+    //
+    // The return value of false indicates that the request could not be processed and hence any further processing
+    // of this request may be stopped.
+    // A return value of true only indicates that the request has been added for
+    // processing.
+    //
+    add_request_for_processing: function (node, res, stream_store) {
         node.attrs.rid = toNumber(node.attrs.rid);
-        this.queued_requests[node.attrs.rid] = {node: node, res: res};
+        this.queued_requests[node.attrs.rid] = {node: node};
+
+        var stream;
+        var should_process = true;
+        // We handle this condition right at the end so that RID updates
+        // can be processed correctly. If only the stream name is invalid,
+        // we treat this packet as a valid packet (only as far as updates
+        // to 'rid' are concerned)
+        if (!this.cannot_handle_ack(node, res)) {
+            var stream_name = stream_store.get_name(node);
+            if (stream_name) {
+                // The stream name is included in the BOSH request.
+                stream = stream_store.get_stream(node);
+                if (!stream) {
+                    // If the stream name is present, but the stream is not valid, we
+                    // blow up.
+                    // FIXME: Subtle bug alert: We have implicitly ACKed all
+                    // 'rids' till now since we didn't send an 'ack'
+                    stream_store.send_invalid_stream_terminate_response(res, stream_name);
+                    return;
+                }
+            }
+
+            // Are we the only stream for this BOSH session?
+            if (!stream) { //TODO: verify
+                stream = this.get_only_stream();
+            }
+            // Add to held response objects for this BOSH session
+            this.add_held_http_connection(node.attrs.rid, res);
+
+            // Process pending (queued) responses (if any)
+            this.send_pending_responses();
+        } else {
+            should_process = false;
+        }
+        if (this.queued_requests[node.attrs.rid]) {
+        //This check is required because the cannot_handle_ack deletes the requests for broken connections.
+            this.queued_requests[node.attrs.rid].stream = stream;
+        }
+        return should_process;
     },
 
     // Adds the response object 'res' to the list of held response

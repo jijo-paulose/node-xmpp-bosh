@@ -165,9 +165,8 @@ exports.createServer = function (options) {
 			// Reset the BOSH session timeout
 			session.reset_inactivity_timeout();
 
-            session.add_request_to_queue(node, res);
-            if (!session.process_requests(stream_store)) {
-                return;
+            if (session.add_request_for_processing(node, res, stream_store)){
+                session.process_requests(stream_store)
             }
 		} // else (not session start)
 
