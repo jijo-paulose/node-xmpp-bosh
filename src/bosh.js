@@ -124,7 +124,7 @@ exports.createServer = function (options) {
 		var stream = null;
 
 		// Check if this is a session start packet.
-		if (session_store.is_session_creation_packet(node)) {
+		if (helper.is_session_creation_packet(node)) {
 			log_it("DEBUG", "BOSH::Session creation");
 			session = session_store.add_session(node, res);
 			stream = stream_store.add_stream(session, node);
@@ -146,6 +146,12 @@ exports.createServer = function (options) {
         } else {
             session = session_store.get_session(node);
             if (!session) { //No (valid) session ID in BOSH request. Not phare enuph.
+                log_it("INFO", "BOSH::Invalid Session.");
+                try {
+    				// This is enclosed in a try/catch block since invalid requests
+	    			// at this point MAY not have this attribute
+                    log_it("INFO", sprintfd("BOSH::%s::Session Id.", node.attrs.sid));
+                } catch (ex) { }
 				session_store.send_invalid_session_terminate_response(res, node);
 				return;
             }
@@ -158,6 +164,7 @@ exports.createServer = function (options) {
 
 			// Check the validity of the packet and the BOSH session
 			if (!session.is_valid_packet(node)) {
+                log_it("INFO", sprintfd("BOSH::%s::Invalid Packet.", session.sid));
 				session.send_invalid_packet_terminate_response(res, node);
 				return;
 			}

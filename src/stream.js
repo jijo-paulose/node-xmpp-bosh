@@ -155,38 +155,13 @@ StreamStore.prototype = {
 	//Fetches a BOSH stream object given a BOSH stanza (<body> tag)
 	//A node may not contain a stream name if it is the only stream in the session
 	get_stream: function (node) {
-		var sname = this.get_name(node);
+		var sname = helper.get_stream_name(node);
 		var stream = sname ? this._sn_state[sname] : null;
 		return stream;
 	},
 
-    get_name: function (node) {
-		return node.attrs.stream;
-	},
-
     get_streams_obj: function () {
 		return this._sn_state;
-	},
-
-	// Coded according to the rules mentioned here:
-	// http://xmpp.org/extensions/xep-0206.html#create and
-	// http://xmpp.org/extensions/xep-0206.html#preconditions-sasl
-	is_stream_restart_packet: function (node) {
-		var ia = dutil.inflated_attrs(node);
-		return ia['urn:xmpp:xbosh:restart'] === 'true';
-	},
-
-	// Coded according to the rules mentioned here:
-	// http://xmpp.org/extensions/xep-0124.html#multi-add
-	is_stream_add_request: function (node) {
-		return node.attrs.to && node.attrs.sid && node.attrs.rid &&
-            !node.attrs.ver && !node.attrs.hold && !node.attrs.wait;
-	},
-
-	// Coded according to the rules mentioned here:
-	// http://xmpp.org/extensions/xep-0124.html#terminate
-	is_stream_terminate_request: function (node) {
-		return node.attrs.sid && node.attrs.rid && node.attrs.type === 'terminate';
 	},
 
 	// These functions don't communicate with either the Client
