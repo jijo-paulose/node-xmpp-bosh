@@ -665,9 +665,15 @@ Session.prototype = {
             // We try sending more queued responses
             this.send_pending_responses();
         } else {
-            log_it("INFO",
-                sprintfd("SESSION::%s::pop_and_send: res.length: %s, pending.length: %s",
-                    this.sid, this.res.length, this.pending.length));
+            if (this.res.length === 0){ //Can happen frequently.
+                log_it("DEBUG",
+                    sprintfd("SESSION::%s::pop_and_send: res.length: %s, pending.length: %s",
+                        this.sid, this.res.length, this.pending.length));
+            } else { //Should rarely happen.
+                log_it("INFO",
+                    sprintfd("SESSION::%s::pop_and_send: res.length: %s, pending.length: %s",
+                        this.sid, this.res.length, this.pending.length));
+            }
         }
     },
 
