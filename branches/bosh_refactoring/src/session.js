@@ -199,14 +199,14 @@ Session.prototype = {
     //
     //  _process_one_request accepts a request, "node", the response object, "res", associated with that request,
     // and the stream_store which holds all the streams for the bosh server.
-    // It process the request node. uses the stream_store to call stream functions.
+    // It processes the request node. uses the stream_store for adding stream to it in case of stream add.
     //
     _process_one_request: function (node, stream, stream_store) {
         log_it("DEBUG", sprintfd("SESSION::%s::_process_one_request::session RID: %s, stream: %s", this.sid,
             this.rid, !!stream));
         var nodes = node.children;
         // Check if this is a stream restart packet.
-        if (stream_store.is_stream_restart_packet(node)) {
+        if (helper.is_stream_restart_packet(node)) {
             log_it("DEBUG", sprintfd("SESSION::%s::Stream Restart", this.sid));
             // Check if stream is valid
             if (!stream) {
@@ -225,7 +225,7 @@ Session.prototype = {
             // the XML nodes in a restart request should be ignored.
             // Hence, we comply.
             nodes = [ ];
-        } else if (stream_store.is_stream_add_request(node)) {
+        } else if (helper.is_stream_add_request(node)) {
             // Check if this is a new stream start packet (multiple streams)
 
             log_it("DEBUG", sprintfd("SESSION::%s::Stream Add", this.sid));
@@ -241,7 +241,7 @@ Session.prototype = {
         }
 
         // Check for stream terminate
-        if (stream_store.is_stream_terminate_request(node)) {
+        if (helper.is_stream_terminate_request(node)) {
             log_it("DEBUG", sprintfd('SESSION::%s::Stream Terminate', this.sid));
             // We may be required to terminate one stream, or all
             // the open streams on this BOSH session.
@@ -309,7 +309,7 @@ Session.prototype = {
     add_request_for_processing: function (node, res, stream_store) {
         log_it("DEBUG", sprintfd("SESSION::%s::add_request_for_processing::session RID: %s", this.sid, this.rid));
         node.attrs.rid = toNumber(node.attrs.rid);
-        this.queued_requests[node.attrs.rid] = {node: node};
+        this.queued_requests[node.attrs.rid] = {node: node, stream: null};
 
         var stream;
         var should_process = true;
@@ -318,7 +318,7 @@ Session.prototype = {
         // we treat this packet as a valid packet (only as far as updates
         // to 'rid' are concerned)
         if (!this.cannot_handle_ack(node, res)) {
-            var stream_name = stream_store.get_name(node);
+            var stream_name = helper.get_stream_name(node);
             if (stream_name) {
                 // The stream name is included in the BOSH request.
                 stream = stream_store.get_stream(node);
@@ -345,7 +345,7 @@ Session.prototype = {
             log_it("INFO", sprintfd("SESSION::%s::cannot handle ack::session RID: %s", this.sid, this.rid));
             should_process = false;
         }
-        if (this.queued_requests[node.attrs.rid]) {
+        if (this.queued_requests.hasOwnProperty(node.attrs.rid)) {
         //This check is required because the cannot_handle_ack deletes the requests for broken connections.
             this.queued_requests[node.attrs.rid].stream = stream;
         }
@@ -637,12 +637,12 @@ Session.prototype = {
     // the current implementation.
     //
     _pop_and_send: function () {
-        var ro = this.get_response_object();
-        log_it("DEBUG",
-            sprintfd("SESSION::%s::pop_and_send: ro:%s, this._pending.length: %s",
-                this.sid, us.isTruthy(ro), this.pending.length));
+        if (this.res.length > 0 && this.pending.length > 0) {
+            var ro = this.get_response_object();
+            log_it("DEBUG",
+                sprintfd("SESSION::%s::pop_and_send: ro:%s, this._pending.length: %s",
+                    this.sid, us.isTruthy(ro), this.pending.length));
 
-        if (ro && this.pending.length > 0) {
             var _p = this.pending.shift();
             var response = _p.response;
             var stream = _p.stream;
@@ -664,6 +664,10 @@ Session.prototype = {
             this._send_no_requeue(ro, response);
             // We try sending more queued responses
             this.send_pending_responses();
+        } else {
+            log_it("INFO",
+                sprintfd("SESSION::%s::pop_and_send: res.length: %s, pending.length: %s",
+                    this.sid, this.res.length, this.pending.length));
         }
     },
 
@@ -1089,17 +1093,6 @@ SessionStore.prototype = {
         };
         var ro = new responsejs.Response(res, null, this._bosh_options);
         ro.send_termination_stanza(attrs);
-    },
-
-    // Coded according to the rules mentioned here:
-    // http://xmpp.org/extensions/xep-0124.html#session-request
-    // Even though it says SHOULD for everything we expect, we violate the XEP.
-    is_session_creation_packet: function (node) {
-        var ia = dutil.inflated_attrs(node);
-        return node.attrs.to &&
-            node.attrs.wait &&
-            node.attrs.hold && !node.attrs.sid &&
-            ia.hasOwnProperty('urn:xmpp:xbosh:version');
     },
 
     stat_session_add: function () {
