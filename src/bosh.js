@@ -147,11 +147,11 @@ exports.createServer = function (options) {
             session = session_store.get_session(node);
             if (!session) { //No (valid) session ID in BOSH request. Not phare enuph.
                 log_it("INFO", "BOSH::Invalid Session.");
-                try {
-    				// This is enclosed in a try/catch block since invalid requests
-	    			// at this point MAY not have this attribute
+                if (node.attrs.sid) {
                     log_it("INFO", sprintfd("BOSH::%s::Session Id.", node.attrs.sid));
-                } catch (ex) { }
+                } else {
+                    log_it("INFO", sprintfd("BOSH::No Session Id."));
+                }
 				session_store.send_invalid_session_terminate_response(res, node);
 				return;
             }
