@@ -38,10 +38,10 @@ var log_it      = dutil.log_it;
 function HTTPServer(port, host, stat_func, bosh_request_handler, http_error_handler,
                     bosh_options) {
 
-	// All request handlers return 'false' on successful handling
-	// of the request and 'undefined' if they did NOT handle the
-	// request. This is according to the EventPipe listeners API
-	// expectation.
+    // All request handlers return 'false' on successful handling
+    // of the request and 'undefined' if they did NOT handle the
+    // request. This is according to the EventPipe listeners API
+    // expectation.
     function handle_get_bosh_request(req, res, u) {
         var ppos = u.pathname.search(bosh_options.path);
         if (req.method === 'GET' && ppos !== -1 && u.query.hasOwnProperty('data')) {
@@ -103,13 +103,13 @@ function HTTPServer(port, host, stat_func, bosh_request_handler, http_error_hand
         return false;
     }
 
-	function handle_options(req, res, u) {
-		if (req.method === 'OPTIONS') {
-			res.writeHead(200, bosh_options.HTTP_OPTIONS_RESPONSE_HEADERS);
-			res.end();
-			return false;
-		}
-	}
+    function handle_options(req, res, u) {
+        if (req.method === 'OPTIONS') {
+            res.writeHead(200, bosh_options.HTTP_OPTIONS_RESPONSE_HEADERS);
+            res.end();
+            return false;
+        }
+    }
 
     function handle_get_favicon(req, res, u) {
         if (req.method === 'GET' && u.pathname === '/favicon.ico') {
@@ -142,8 +142,8 @@ function HTTPServer(port, host, stat_func, bosh_request_handler, http_error_hand
         return false;
     }
 
-	// TODO: Read off the Headers request from the request and set that in the
-	// response.
+    // TODO: Read off the Headers request from the request and set that in the
+    // response.
 
     var router = new EventPipe();
     router.on('request', handle_post_bosh_request, 1)
@@ -160,7 +160,7 @@ function HTTPServer(port, host, stat_func, bosh_request_handler, http_error_hand
         router.emit('request', req, res, u);
     }
 
-	// Initialize
+    // Initialize
     var server = http.createServer(http_request_handler);
     server.on('error', http_error_handler);
     server.listen(port, host);

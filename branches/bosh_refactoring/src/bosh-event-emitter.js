@@ -26,7 +26,7 @@
 var EventPipe   = require('eventpipe').EventPipe;
 var util        = require('util');
 var dutil       = require('./dutil.js');
-
+var us          = require('underscore');
 
 function BoshEventPipe(http_server) {
     this.server = http_server;
@@ -45,8 +45,8 @@ dutil.copy(BoshEventPipe.prototype, {
 
 	set_stream_data: function (stream_store) {
 		this.sn_state = stream_store.get_streams_obj();
-		this.stat_stream_add = stream_store.stat_stream_add;
-		this.stat_stream_terminate = stream_store.stat_stream_terminate;
+		this.stat_stream_add = us.bind(stream_store.stat_stream_add, stream_store);
+		this.stat_stream_terminate = us.bind(stream_store.stat_stream_terminate, stream_store);
 	}
 });
 
