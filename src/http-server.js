@@ -131,6 +131,26 @@ function HTTPServer(port, host, stat_func, bosh_request_handler, http_error_hand
         }
     }
 
+    //
+    // http://code.google.com/p/node-xmpp-bosh/issues/detail?id=22
+    // Supporting cross-domain requests through the addition of flash. This will be necessary
+    // if you use the plug strophe.flxhr.js for the library strophe.
+    //
+    function handle_get_crossdomainXML(req, res, u) {
+        if (req.method === 'GET' && req.url === "/crossdomain.xml") {
+            res.writeHead(200, bosh_options.HTTP_GET_RESPONSE_HEADERS);
+            var crossdomain = '<?xml version="1.0"?>';
+            crossdomain += '<!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">';
+            crossdomain += '<cross-domain-policy>';
+            crossdomain += '<site-control permitted-cross-domain-policies="all"/>';
+            crossdomain += '<allow-access-from domain="*" to-ports="' + port + '" secure="true"/>';
+            crossdomain += '<allow-http-request-headers-from domain="*" headers="*" />';
+            crossdomain += '</cross-domain-policy>';
+            res.end(crossdomain);
+            return false;
+        }
+    }
+
     function handle_unhandled_request(req, res, u) {
         log_it("ERROR", "HTTPSERVER::Invalid request, method:", req.method, "path:",
             u.pathname);
@@ -151,7 +171,8 @@ function HTTPServer(port, host, stat_func, bosh_request_handler, http_error_hand
         .on('request', handle_options, 3)
         .on('request', handle_get_favicon, 4)
         .on('request', handle_get_statistics, 5)
-        .on('request', handle_unhandled_request, 6);
+        .on('request', handle_get_crossdomainXML, 6)
+        .on('request', handle_unhandled_request, 7);
 
     function http_request_handler(req, res) {
         var u = url.parse(req.url, true);
