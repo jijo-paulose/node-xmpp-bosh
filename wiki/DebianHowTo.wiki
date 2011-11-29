@@ -271,7 +271,7 @@ Remember this solution is not the best (not really clean), but is simple and wor
 
 You can also use _Forever_ "instead of" _cronjob_ or _daemon tools_.
 
-[https://github.com/indexzero/forever Forever] is _a simple CLI tool for ensuring that a given script runs continuously (i.e. forever)_.
+[https://github.com/nodejitsu/forever Forever] is _a simple CLI tool for ensuring that a given script runs continuously (i.e. forever)_.
 
 *Install Forever:*
 {{{
