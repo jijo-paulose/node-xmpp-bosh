@@ -278,4 +278,4 @@ You can also use _Forever_ "instead of" _cronjob_ or _daemon tools_.
 sudo npm install forever
 }}}
 
-See [https://github.com/indexzero/forever this page] for help on how to use Forever.
+See [https://github.com/nodejitsu/forever this page] for help on how to use Forever.
