@@ -131,6 +131,9 @@ exports.createServer = function (options) {
         // In case node doesn't have attrs.rid
         // it will be set to 0, which is alright.
         node.attrs.rid = toNumber(node.attrs.rid);
+        if (node.attrs.ack) {
+            node.attrs.ack = toNumber(node.attrs.ack);
+        }
 
         // Check if this is a session start packet.
         if (helper.is_session_creation_packet(node)) {
