@@ -1,25 +1,3 @@
 #summary Some benchmarks of node-xmpp-bosh memory usage with different kinds of loads.
 
-#Benchmarks
-
-= Benchmarks =
-
-=== Test-1 ===
-
-BOSH server serving 1000 simultaneous BOSH sessions (clients) using 256 simultaneous HTTP connections.
-
-Command: node stress.js --domain=YOUR_DOMAIN --nsess=1000 --nconn=256 --reqdelay=10
-
-Memory Usage (RSS): 41MB (max)
-
-Test run on: CYGWIN_NT-5.1 hostname 1.7.5(0.225/5/3) 2010-04-12 19:07 i686 Cygwin
-
-=== Test-2 ===
-
-BOSH server serving 5000 simultaneous BOSH sessions (clients) using 4000 simultaneous HTTP connections.
-
-Memory Usage (RSS): Between 128MB and 170MB
-
-Command: node stress.js --domain=YOUR_DOMAIN --reqdelay=10 --nsess=5000 --nconn=4000
-
-Test run on: Linux staging.server-1 2.6.18-92.el5xen #1 SMP Tue Jun 10 19:20:18 EDT 2008 x86_64 x86_64 x86_64 GNU/Linux
+Please see [https://github.com/dhruvbird/node-xmpp-bosh/wiki/Benchmarks this page] for the benchmarks.
